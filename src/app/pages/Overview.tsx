@@ -159,28 +159,53 @@ export function Overview() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <h3 className="text-lg font-semibold">Vexa AI Insight</h3>
-                <div className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
-                  Waiting for data
+                <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${hasScans ? "bg-green-500/20 text-green-400" : "bg-purple-500/20 text-purple-400"}`}>
+                  {isRunning ? "Scanning…" : hasScans ? "Analysis Ready" : "Waiting for data"}
                 </div>
               </div>
-              <p className="text-gray-400 mb-4 text-sm md:text-base">
-                Add your assets and run your first security scan to unlock AI-powered insights,
-                risk predictions, and attack path analysis.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  to="/monitoring"
-                  className="px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all border border-purple-500/30"
-                >
-                  Start First Scan
-                </Link>
-                <Link
-                  to="/assets"
-                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition-all"
-                >
-                  Add Assets
-                </Link>
-              </div>
+              {hasScans && findingsList.length > 0 ? (
+                <>
+                  <p className="text-gray-300 mb-3 text-sm md:text-base">
+                    {(() => {
+                      const critical = findingsList.filter(f => f.severity === "critical").length;
+                      const high = findingsList.filter(f => f.severity === "high").length;
+                      const cveCount = findingsList.filter(f => f.cve).length;
+                      const criticalAssets = assets.filter(a => a.riskScore >= 75).length;
+                      if (critical > 0)
+                        return `⚠️ ${critical} critical vulnerability${critical > 1 ? "ies" : "y"} detected across ${assetCount} assets — immediate remediation required. ${high > 0 ? `${high} high-severity findings also need attention.` : ""}`;
+                      if (high > 0)
+                        return `${high} high-severity finding${high > 1 ? "s" : ""} identified across your infrastructure. ${cveCount > 0 ? `${cveCount} CVEs tracked — review and patch affected services.` : ""}`;
+                      return `${findingsList.length} security finding${findingsList.length > 1 ? "s" : ""} across ${assetCount} assets. ${cveCount > 0 ? `${cveCount} CVEs identified.` : "No critical issues detected."} Risk posture is ${criticalAssets > 0 ? "elevated" : "moderate"}.`;
+                    })()}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {findingsList.filter(f => f.severity === "critical").length > 0 && (
+                      <span className="px-2 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs border border-red-500/30">{findingsList.filter(f => f.severity === "critical").length} Critical</span>
+                    )}
+                    {findingsList.filter(f => f.severity === "high").length > 0 && (
+                      <span className="px-2 py-1 rounded-lg bg-orange-500/20 text-orange-400 text-xs border border-orange-500/30">{findingsList.filter(f => f.severity === "high").length} High</span>
+                    )}
+                    {findingsList.filter(f => f.cve).length > 0 && (
+                      <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-400 text-xs border border-purple-500/30">{new Set(findingsList.filter(f => f.cve).map(f => f.cve)).size} CVEs</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Link to="/ai-risk" className="px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all border border-purple-500/30">View AI Risk Center</Link>
+                    <Link to="/attack-graph" className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition-all">Attack Graph</Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-400 mb-4 text-sm md:text-base">
+                    {isRunning ? "Scan in progress — AI insights will be ready once findings are collected." : "Run your first security scan to unlock AI-powered insights, risk predictions, and attack path analysis."}
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Link to="/monitoring" className="px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all border border-purple-500/30">
+                      {isRunning ? "View Scan Progress" : "Start First Scan"}
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

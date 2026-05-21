@@ -12,26 +12,46 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Alerts — all authenticated users can read; any authenticated user can create
+    // Alerts — all authenticated users can read; any authenticated user can create/update
     match /alerts/{alertId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null;
     }
 
-    // Scan jobs — authenticated users can create; only creator can update/delete
+    // Scan jobs — authenticated users can create and read; any authenticated user can update (scan engine runs client-side)
     match /scans/{scanId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && request.auth.uid == resource.data.createdBy;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Assets — any authenticated user can read/write (populated by scan engine)
+    match /assets/{assetId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Findings — any authenticated user can read/write (populated by scan engine)
+    match /findings/{findingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Reports — any authenticated user can create/read; update own reports
+    match /reports/{reportId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.generatedBy;
     }
 
     // Integrations — keyed by userId_type, only owner can read/write
     match /integrations/{integrationId} {
-      allow read, write: if request.auth != null
+      allow read: if request.auth != null
         && request.auth.uid == resource.data.connectedBy;
       allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.connectedBy;
     }
 
     // Deny all other access

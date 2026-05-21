@@ -148,7 +148,7 @@ export function Assets() {
                     <td className="px-4 md:px-6 py-3 text-sm text-gray-400 hidden sm:table-cell">{asset.type}</td>
                     <td className="px-4 md:px-6 py-3 text-sm text-gray-400 hidden md:table-cell">--</td>
                     <td className="px-4 md:px-6 py-3 text-sm text-gray-200">{asset.riskScore}</td>
-                    <td className="px-4 md:px-6 py-3 text-sm text-gray-400 hidden lg:table-cell">{asset.discoveredAt?.toDate ? asset.discoveredAt.toDate().toLocaleString() : "--"}</td>
+                    <td className="px-4 md:px-6 py-3 text-sm text-gray-400 hidden lg:table-cell">{asset.discoveredAt ? new Date(asset.discoveredAt).toLocaleString() : "--"}</td>
                     <td className="px-4 md:px-6 py-3 text-right text-sm">
                       <Link to={`/assets/${asset.id}`} className="text-cyan-400 hover:underline">View</Link>
                     </td>

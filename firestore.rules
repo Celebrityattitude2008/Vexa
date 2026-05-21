@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Notification settings — own only
+    match /notificationSettings/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Alerts — all authenticated users can read; any authenticated user can create
+    match /alerts/{alertId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Scan jobs — authenticated users can create; only creator can update/delete
+    match /scans/{scanId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.createdBy;
+    }
+
+    // Integrations — keyed by userId_type, only owner can read/write
+    match /integrations/{integrationId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.connectedBy;
+      allow create: if request.auth != null;
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

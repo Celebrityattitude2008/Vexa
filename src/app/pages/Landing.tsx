@@ -3,9 +3,8 @@ import { useState, useEffect } from "react";
 import {
   Shield, Zap, Eye, Globe, Lock, Activity, ChevronRight,
   CheckCircle2, AlertTriangle, Server, Cloud, Database,
-  ArrowRight, Star, Users, BarChart3, Search, Bell,
-  Code2, GitBranch, Layers, Cpu, Network, FileText,
-  ExternalLink, Menu, X,
+  ArrowRight, Users, BarChart3, Search, Bell,
+  Cpu, Network, FileText, Menu, X,
 } from "lucide-react";
 
 const STATS = [
@@ -104,10 +103,10 @@ const SCAN_TYPES = [
 ];
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "text-red-400 bg-red-500/10 border-red-500/20",
-  high: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  medium: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
-  low: "text-green-400 bg-green-500/10 border-green-500/20",
+  critical: "text-red-300 bg-red-500/15 border-red-500/30",
+  high: "text-orange-300 bg-orange-500/15 border-orange-500/30",
+  medium: "text-yellow-300 bg-yellow-500/15 border-yellow-500/30",
+  low: "text-green-300 bg-green-500/15 border-green-500/30",
 };
 
 const SAMPLE_FINDINGS = [
@@ -118,21 +117,21 @@ const SAMPLE_FINDINGS = [
 ];
 
 const colorMap: Record<string, string> = {
-  cyan:   "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
-  orange: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  purple: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  blue:   "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  green:  "text-green-400 bg-green-500/10 border-green-500/20",
-  pink:   "text-pink-400 bg-pink-500/10 border-pink-500/20",
-  yellow: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
-  teal:   "text-teal-400 bg-teal-500/10 border-teal-500/20",
+  cyan:   "text-cyan-300 bg-cyan-500/15 border-cyan-500/30",
+  orange: "text-orange-300 bg-orange-500/15 border-orange-500/30",
+  purple: "text-purple-300 bg-purple-500/15 border-purple-500/30",
+  blue:   "text-blue-300 bg-blue-500/15 border-blue-500/30",
+  green:  "text-green-300 bg-green-500/15 border-green-500/30",
+  pink:   "text-pink-300 bg-pink-500/15 border-pink-500/30",
+  yellow: "text-yellow-300 bg-yellow-500/15 border-yellow-500/30",
+  teal:   "text-teal-300 bg-teal-500/15 border-teal-500/30",
 };
 
 function AnimatedOrb({ cx, cy, r, color, dur }: { cx: string; cy: string; r: string; color: string; dur: string }) {
   return (
-    <circle cx={cx} cy={cy} r={r} fill={color} opacity="0.04">
+    <circle cx={cx} cy={cy} r={r} fill={color} opacity="0.06">
       <animate attributeName="r" values={`${r};${parseInt(r) * 1.3};${r}`} dur={dur} repeatCount="indefinite" />
-      <animate attributeName="opacity" values="0.04;0.08;0.04" dur={dur} repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.06;0.12;0.06" dur={dur} repeatCount="indefinite" />
     </circle>
   );
 }
@@ -156,23 +155,23 @@ export function Landing() {
   return (
     <div className="min-h-screen bg-[#07070d] text-gray-100 overflow-x-hidden">
       {/* ── NAV ──────────────────────────────────────────────────────────────── */}
-      <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#07070d]/95 backdrop-blur-xl border-b border-white/5 shadow-xl" : ""}`}>
+      <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#07070d]/95 backdrop-blur-xl border-b border-[#1a1a2e] shadow-xl" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
                 <Shield className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold tracking-tight">VEXA</span>
-              <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-medium">Security</span>
+              <span className="text-xl font-bold tracking-tight text-white">VEXA</span>
+              <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-medium">Security</span>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
               {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Pricing", "#pricing"], ["Privacy", "/privacy"]].map(([label, href]) => (
                 href.startsWith("/") ? (
-                  <Link key={label} to={href} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</Link>
+                  <Link key={label} to={href} className="text-sm text-gray-300 hover:text-white transition-colors font-medium">{label}</Link>
                 ) : (
-                  <a key={label} href={href} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</a>
+                  <a key={label} href={href} className="text-sm text-gray-300 hover:text-white transition-colors font-medium">{label}</a>
                 )
               ))}
             </div>
@@ -180,7 +179,7 @@ export function Landing() {
             <div className="flex items-center gap-3">
               <Link
                 to="/login"
-                className="hidden sm:inline-flex text-sm text-gray-300 hover:text-white transition-colors px-4 py-2"
+                className="hidden sm:inline-flex text-sm text-gray-200 hover:text-white transition-colors px-4 py-2 font-medium"
               >
                 Sign In
               </Link>
@@ -192,7 +191,7 @@ export function Landing() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <button
-                className="md:hidden p-2 text-gray-400 hover:text-white"
+                className="md:hidden p-2 text-gray-300 hover:text-white"
                 onClick={() => setMenuOpen(v => !v)}
               >
                 {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -203,15 +202,15 @@ export function Landing() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden bg-[#0d0d18] border-b border-white/10 px-4 py-4 space-y-3">
+          <div className="md:hidden bg-[#0d0d18] border-b border-[#1a1a2e] px-4 py-4 space-y-3">
             {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Privacy", "/privacy"]].map(([label, href]) => (
               href.startsWith("/") ? (
-                <Link key={label} to={href} onClick={() => setMenuOpen(false)} className="block text-sm text-gray-400 hover:text-white py-2">{label}</Link>
+                <Link key={label} to={href} onClick={() => setMenuOpen(false)} className="block text-sm text-gray-300 hover:text-white py-2 font-medium">{label}</Link>
               ) : (
-                <a key={label} href={href} onClick={() => setMenuOpen(false)} className="block text-sm text-gray-400 hover:text-white py-2">{label}</a>
+                <a key={label} href={href} onClick={() => setMenuOpen(false)} className="block text-sm text-gray-300 hover:text-white py-2 font-medium">{label}</a>
               )
             ))}
-            <Link to="/login" onClick={() => setMenuOpen(false)} className="block text-sm text-gray-400 hover:text-white py-2">Sign In</Link>
+            <Link to="/login" onClick={() => setMenuOpen(false)} className="block text-sm text-gray-300 hover:text-white py-2 font-medium">Sign In</Link>
           </div>
         )}
       </nav>
@@ -223,35 +222,34 @@ export function Landing() {
           <svg className="w-full h-full" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
             <defs>
               <radialGradient id="g1" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.12" />
+                <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.15" />
                 <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
               </radialGradient>
               <radialGradient id="g2" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.10" />
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.12" />
                 <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
               </radialGradient>
             </defs>
             <AnimatedOrb cx="720" cy="350" r="400" color="url(#g1)" dur="8s" />
             <AnimatedOrb cx="200" cy="200" r="250" color="url(#g2)" dur="12s" />
             <AnimatedOrb cx="1200" cy="600" r="300" color="url(#g1)" dur="10s" />
-            {/* Grid lines */}
             {Array.from({ length: 20 }).map((_, i) => (
-              <line key={`v${i}`} x1={i * 76} y1="0" x2={i * 76} y2="900" stroke="white" strokeOpacity="0.015" strokeWidth="1" />
+              <line key={`v${i}`} x1={i * 76} y1="0" x2={i * 76} y2="900" stroke="white" strokeOpacity="0.025" strokeWidth="1" />
             ))}
             {Array.from({ length: 12 }).map((_, i) => (
-              <line key={`h${i}`} x1="0" y1={i * 75} x2="1440" y2={i * 75} stroke="white" strokeOpacity="0.015" strokeWidth="1" />
+              <line key={`h${i}`} x1="0" y1={i * 75} x2="1440" y2={i * 75} stroke="white" strokeOpacity="0.025" strokeWidth="1" />
             ))}
           </svg>
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-medium mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-medium mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             Enterprise Attack Surface Management
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-white">
             Discover Every
             <br />
             <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -261,7 +259,7 @@ export function Landing() {
             Before Attackers Do
           </h1>
 
-          <p className="text-lg sm:text-xl text-gray-400 max-w-3xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
             Vexa is a continuous attack surface management platform that automatically
             discovers, maps, and assesses vulnerabilities across your entire infrastructure —
             subdomains, APIs, cloud assets, ports, CVEs, and certificates.
@@ -277,7 +275,7 @@ export function Landing() {
             </Link>
             <a
               href="#features"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white/5 border border-white/10 text-gray-300 font-semibold text-lg hover:bg-white/10 transition-all w-full sm:w-auto justify-center"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#111118] border border-[#2a2a3e] text-gray-200 font-semibold text-lg hover:bg-[#16161f] hover:border-[#363650] transition-all w-full sm:w-auto justify-center"
             >
               See Features
               <ChevronRight className="w-5 h-5" />
@@ -287,10 +285,10 @@ export function Landing() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {STATS.map((s) => (
-              <div key={s.label} className="rounded-xl bg-white/5 border border-white/10 p-4 text-center backdrop-blur-sm">
+              <div key={s.label} className="rounded-xl bg-[#111118] border border-[#1e1e2e] p-4 text-center">
                 <s.icon className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{s.value}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5 font-medium">{s.label}</div>
               </div>
             ))}
           </div>
@@ -300,15 +298,15 @@ export function Landing() {
       {/* ── LIVE DEMO PREVIEW ────────────────────────────────────────────────── */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="rounded-2xl bg-[#0d0d18] border border-white/10 overflow-hidden shadow-2xl shadow-black/50">
+          <div className="rounded-2xl bg-[#0d0d18] border border-[#1e1e2e] overflow-hidden shadow-2xl shadow-black/50">
             {/* Fake browser bar */}
-            <div className="bg-black/40 border-b border-white/5 px-4 py-3 flex items-center gap-3">
+            <div className="bg-[#0a0a12] border-b border-[#1a1a28] px-4 py-3 flex items-center gap-3">
               <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/60" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
-                <div className="w-3 h-3 rounded-full bg-green-500/60" />
+                <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                <div className="w-3 h-3 rounded-full bg-green-500/70" />
               </div>
-              <div className="flex-1 bg-white/5 rounded-md px-3 py-1 text-xs text-gray-500 font-mono text-center">
+              <div className="flex-1 bg-[#111118] rounded-md px-3 py-1 text-xs text-gray-400 font-mono text-center border border-[#1e1e2e]">
                 app.vexa.security — Attack Surface Dashboard
               </div>
             </div>
@@ -317,36 +315,36 @@ export function Landing() {
               {/* Top metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Total Findings", val: "47", color: "text-orange-400" },
-                  { label: "Completed Scans", val: "8", color: "text-green-400" },
-                  { label: "Active Scans", val: "2", color: "text-cyan-400" },
-                  { label: "Assets Found", val: "63", color: "text-purple-400" },
+                  { label: "Total Findings", val: "47", color: "text-orange-300" },
+                  { label: "Completed Scans", val: "8", color: "text-green-300" },
+                  { label: "Active Scans", val: "2", color: "text-cyan-300" },
+                  { label: "Assets Found", val: "63", color: "text-purple-300" },
                 ].map(m => (
-                  <div key={m.label} className="bg-white/5 rounded-lg border border-white/10 p-3">
+                  <div key={m.label} className="bg-[#111118] rounded-lg border border-[#1e1e2e] p-3">
                     <div className={`text-2xl font-bold ${m.color}`}>{m.val}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{m.label}</div>
+                    <div className="text-xs text-gray-400 mt-0.5 font-medium">{m.label}</div>
                   </div>
                 ))}
               </div>
               {/* Sample findings table */}
-              <div className="rounded-lg bg-black/30 border border-white/5 overflow-hidden">
-                <div className="px-4 py-2 border-b border-white/5 flex items-center gap-2">
+              <div className="rounded-lg bg-[#0a0a12] border border-[#1a1a28] overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-[#1a1a28] flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-orange-400" />
-                  <span className="text-sm font-medium">Latest Findings</span>
+                  <span className="text-sm font-semibold text-gray-100">Latest Findings</span>
                 </div>
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-[#1a1a28]">
                   {SAMPLE_FINDINGS.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                    <div key={i} className="flex items-center justify-between px-4 py-3 text-sm">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium border ${SEVERITY_COLORS[f.severity]}`}>
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${SEVERITY_COLORS[f.severity]}`}>
                           {f.severity}
                         </span>
-                        <span className="text-gray-300 truncate">{f.title}</span>
+                        <span className="text-gray-200 truncate font-medium">{f.title}</span>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                        {f.cve && <span className="text-xs text-gray-500 font-mono hidden sm:inline">{f.cve}</span>}
-                        <span className="text-xs text-gray-600 hidden md:inline">{f.asset}</span>
-                        <span className="text-xs font-bold text-white">{f.cvss}</span>
+                        {f.cve && <span className="text-xs text-gray-400 font-mono hidden sm:inline">{f.cve}</span>}
+                        <span className="text-xs text-gray-400 hidden md:inline">{f.asset}</span>
+                        <span className="text-xs font-bold text-white bg-[#1a1a28] px-1.5 py-0.5 rounded">{f.cvss}</span>
                       </div>
                     </div>
                   ))}
@@ -362,8 +360,8 @@ export function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Platform Capabilities</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">Everything You Need to Secure<br className="hidden sm:inline" /> Your Attack Surface</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4 text-white">Everything You Need to Secure<br className="hidden sm:inline" /> Your Attack Surface</h2>
+            <p className="text-gray-300 max-w-2xl mx-auto text-base">
               From continuous asset discovery to AI-powered risk scoring, Vexa covers the
               entire vulnerability lifecycle in a single platform.
             </p>
@@ -380,14 +378,14 @@ export function Landing() {
                   className={`rounded-xl border p-5 cursor-pointer transition-all duration-300 ${
                     isActive
                       ? `${colors} shadow-lg`
-                      : "bg-white/3 border-white/10 hover:bg-white/5"
+                      : "bg-[#0f0f1a] border-[#1e1e2e] hover:bg-[#13131f] hover:border-[#2a2a3e]"
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${isActive ? "bg-white/10" : "bg-white/5"}`}>
-                    <f.icon className={`w-5 h-5 ${isActive ? colors.split(" ")[0] : "text-gray-400"}`} />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${isActive ? "bg-white/10" : "bg-[#1a1a28]"}`}>
+                    <f.icon className={`w-5 h-5 ${isActive ? colors.split(" ")[0] : "text-gray-300"}`} />
                   </div>
-                  <h3 className="font-semibold mb-2 text-sm">{f.title}</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+                  <h3 className="font-semibold mb-2 text-sm text-white">{f.title}</h3>
+                  <p className="text-xs text-gray-300 leading-relaxed">{f.desc}</p>
                 </div>
               );
             })}
@@ -396,12 +394,12 @@ export function Landing() {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 px-4 bg-gradient-to-b from-transparent via-cyan-500/3 to-transparent">
+      <section id="how-it-works" className="py-24 px-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Process</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">How Vexa Works</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4 text-white">How Vexa Works</h2>
+            <p className="text-gray-300 max-w-xl mx-auto text-base">
               From target entry to prioritized remediation in minutes — fully automated.
             </p>
           </div>
@@ -410,15 +408,15 @@ export function Landing() {
             {HOW_IT_WORKS.map((step, i) => (
               <div key={step.step} className="relative">
                 {i < HOW_IT_WORKS.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[calc(100%_-_12px)] w-full h-px bg-gradient-to-r from-cyan-500/30 to-transparent z-10" />
+                  <div className="hidden lg:block absolute top-8 left-[calc(100%_-_12px)] w-full h-px bg-gradient-to-r from-cyan-500/40 to-transparent z-10" />
                 )}
-                <div className="rounded-2xl bg-white/5 border border-white/10 p-6 h-full">
-                  <div className="text-5xl font-black text-white/5 mb-4 leading-none">{step.step}</div>
-                  <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-4">
+                <div className="rounded-2xl bg-[#0f0f1a] border border-[#1e1e2e] p-6 h-full">
+                  <div className="text-5xl font-black text-[#1e1e2e] mb-4 leading-none select-none">{step.step}</div>
+                  <div className="w-10 h-10 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center mb-4">
                     <step.icon className="w-5 h-5 text-cyan-400" />
                   </div>
-                  <h3 className="font-semibold mb-2">{step.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
+                  <h3 className="font-semibold mb-2 text-white">{step.title}</h3>
+                  <p className="text-sm text-gray-300 leading-relaxed">{step.desc}</p>
                 </div>
               </div>
             ))}
@@ -432,8 +430,8 @@ export function Landing() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Scan Modes</span>
-              <h2 className="text-3xl font-bold mt-3 mb-4">7 Specialized Scan Types</h2>
-              <p className="text-gray-400 mb-8 leading-relaxed">
+              <h2 className="text-3xl font-bold mt-3 mb-4 text-white">7 Specialized Scan Types</h2>
+              <p className="text-gray-300 mb-8 leading-relaxed text-base">
                 Each scan mode is optimized for a specific attack surface. Run a 10-minute full
                 infrastructure scan for a complete picture, or focus on specific vectors.
               </p>
@@ -447,15 +445,15 @@ export function Landing() {
             </div>
             <div className="space-y-3">
               {SCAN_TYPES.map(s => (
-                <div key={s.name} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 hover:bg-white/8 transition-colors">
+                <div key={s.name} className="flex items-center justify-between rounded-xl bg-[#0f0f1a] border border-[#1e1e2e] px-4 py-3 hover:bg-[#13131f] hover:border-[#2a2a3e] transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0" />
-                    <span className="text-sm font-medium">{s.name}</span>
+                    <span className="text-sm font-medium text-gray-100">{s.name}</span>
                     {s.badge && (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-medium">{s.badge}</span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-semibold">{s.badge}</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500 flex-shrink-0">{s.time}</span>
+                  <span className="text-xs text-gray-400 flex-shrink-0 font-medium">{s.time}</span>
                 </div>
               ))}
             </div>
@@ -464,10 +462,10 @@ export function Landing() {
       </section>
 
       {/* ── TECH STACK / INTEGRATIONS ────────────────────────────────────────── */}
-      <section className="py-16 px-4 border-y border-white/5">
+      <section className="py-16 px-4 border-y border-[#1a1a28]">
         <div className="max-w-6xl mx-auto">
-          <p className="text-center text-xs text-gray-600 uppercase tracking-widest mb-8">Intelligence Powered By</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 opacity-40">
+          <p className="text-center text-xs text-gray-500 uppercase tracking-widest mb-8 font-semibold">Intelligence Powered By</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 opacity-70">
             {[
               { name: "HackerTarget", icon: Search },
               { name: "VirusTotal", icon: Shield },
@@ -476,9 +474,9 @@ export function Landing() {
               { name: "Firebase", icon: Cloud },
               { name: "Let's Encrypt", icon: Lock },
             ].map(t => (
-              <div key={t.name} className="flex items-center gap-2 text-gray-400">
+              <div key={t.name} className="flex items-center gap-2 text-gray-300">
                 <t.icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{t.name}</span>
+                <span className="text-sm font-semibold">{t.name}</span>
               </div>
             ))}
           </div>
@@ -490,8 +488,8 @@ export function Landing() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Pricing</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">Start free. Scale as you grow. No hidden fees.</p>
+            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4 text-white">Simple, Transparent Pricing</h2>
+            <p className="text-gray-300 max-w-xl mx-auto text-base">Start free. Scale as you grow. No hidden fees.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -517,21 +515,21 @@ export function Landing() {
                 features: ["Unlimited everything", "Custom scan policies", "SSO / SAML", "Dedicated infrastructure", "SLA guarantee", "Security team onboarding", "Custom integrations"],
               },
             ].map(plan => (
-              <div key={plan.name} className={`rounded-2xl border p-6 flex flex-col ${plan.highlight ? "bg-gradient-to-b from-cyan-500/10 to-blue-500/5 border-cyan-500/30 shadow-xl shadow-cyan-500/10" : "bg-white/5 border-white/10"}`}>
+              <div key={plan.name} className={`rounded-2xl border p-6 flex flex-col ${plan.highlight ? "bg-gradient-to-b from-cyan-500/10 to-blue-500/5 border-cyan-500/40 shadow-xl shadow-cyan-500/10" : "bg-[#0f0f1a] border-[#1e1e2e]"}`}>
                 {plan.highlight && (
                   <div className="flex justify-center mb-4">
-                    <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">Most Popular</span>
+                    <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold">Most Popular</span>
                   </div>
                 )}
-                <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
+                <h3 className="text-lg font-bold mb-1 text-white">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-extrabold">{plan.price}</span>
-                  <span className="text-sm text-gray-500">{plan.sub}</span>
+                  <span className="text-3xl font-extrabold text-white">{plan.price}</span>
+                  <span className="text-sm text-gray-400 font-medium">{plan.sub}</span>
                 </div>
-                <div className="border-t border-white/10 my-5" />
+                <div className="border-t border-[#1e1e2e] my-5" />
                 <ul className="space-y-3 flex-1 mb-6">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-gray-300">
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-200">
                       <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
                       {f}
                     </li>
@@ -542,7 +540,7 @@ export function Landing() {
                   className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all ${
                     plan.highlight
                       ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 shadow-lg shadow-cyan-500/20"
-                      : "bg-white/10 border border-white/10 text-gray-300 hover:bg-white/15"
+                      : "bg-[#1a1a28] border border-[#2a2a3e] text-gray-200 hover:bg-[#1e1e2f] hover:text-white"
                   }`}
                 >
                   {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
@@ -556,16 +554,16 @@ export function Landing() {
       {/* ── CTA BANNER ───────────────────────────────────────────────────────── */}
       <section className="py-24 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="rounded-3xl bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-white/10 p-12 relative overflow-hidden">
+          <div className="rounded-3xl bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-[#2a2a3e] p-12 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5" />
             <div className="relative">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-cyan-500/30">
                 <Shield className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">
                 Ready to Secure Your Infrastructure?
               </h2>
-              <p className="text-gray-400 text-lg mb-8 max-w-xl mx-auto">
+              <p className="text-gray-300 text-lg mb-8 max-w-xl mx-auto">
                 Join thousands of security teams using Vexa to stay ahead of attackers.
                 Start your first scan in under 60 seconds.
               </p>
@@ -582,7 +580,7 @@ export function Landing() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 py-12 px-4">
+      <footer className="border-t border-[#1a1a28] py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 sm:col-span-1">
@@ -590,50 +588,50 @@ export function Landing() {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
                   <Shield className="w-4 h-4 text-white" />
                 </div>
-                <span className="font-bold">VEXA</span>
+                <span className="font-bold text-white">VEXA</span>
               </div>
-              <p className="text-xs text-gray-600 leading-relaxed max-w-xs">
+              <p className="text-xs text-gray-400 leading-relaxed max-w-xs">
                 Enterprise attack surface management platform for continuous vulnerability
                 discovery and remediation.
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><a href="#features" className="hover:text-gray-300 transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-gray-300 transition-colors">How It Works</a></li>
-                <li><a href="#pricing" className="hover:text-gray-300 transition-colors">Pricing</a></li>
-                <li><Link to="/login" className="hover:text-gray-300 transition-colors">Sign In</Link></li>
+              <h4 className="text-sm font-semibold mb-4 text-white">Platform</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="#features" className="hover:text-gray-200 transition-colors">Features</a></li>
+                <li><a href="#how-it-works" className="hover:text-gray-200 transition-colors">How It Works</a></li>
+                <li><a href="#pricing" className="hover:text-gray-200 transition-colors">Pricing</a></li>
+                <li><Link to="/login" className="hover:text-gray-200 transition-colors">Sign In</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-4">Security</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><span className="cursor-default">CVE Database</span></li>
-                <li><span className="cursor-default">Attack Surface</span></li>
-                <li><span className="cursor-default">Compliance</span></li>
-                <li><span className="cursor-default">Vulnerability Mgmt</span></li>
+              <h4 className="text-sm font-semibold mb-4 text-white">Security</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li>CVE Database</li>
+                <li>Attack Surface</li>
+                <li>Compliance</li>
+                <li>Vulnerability Mgmt</li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><Link to="/privacy" className="hover:text-gray-300 transition-colors">Privacy Policy</Link></li>
-                <li><span className="cursor-default">Terms of Service</span></li>
-                <li><span className="cursor-default">Cookie Policy</span></li>
-                <li><span className="cursor-default">Security</span></li>
+              <h4 className="text-sm font-semibold mb-4 text-white">Legal</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><Link to="/privacy" className="hover:text-gray-200 transition-colors">Privacy Policy</Link></li>
+                <li>Terms of Service</li>
+                <li>Cookie Policy</li>
+                <li>Security</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-gray-600">
+          <div className="border-t border-[#1a1a28] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-gray-400">
               © {new Date().getFullYear()} Vexa Security Platform. All rights reserved.
             </p>
-            <div className="flex items-center gap-4 text-xs text-gray-600">
-              <Link to="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
-              <span>·</span>
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <Link to="/privacy" className="hover:text-gray-200 transition-colors">Privacy Policy</Link>
+              <span className="text-gray-600">·</span>
               <span>SOC2 Ready</span>
-              <span>·</span>
+              <span className="text-gray-600">·</span>
               <span>ISO 27001</span>
             </div>
           </div>

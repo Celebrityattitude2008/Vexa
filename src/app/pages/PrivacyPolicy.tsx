@@ -7,20 +7,20 @@ const EFFECTIVE_DATE = "June 30, 2026";
 function Section({ id, icon: Icon, title, children }: { id: string; icon: any; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
           <Icon className="w-4 h-4 text-cyan-400" />
         </div>
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold text-white">{title}</h2>
       </div>
-      <div className="text-gray-400 space-y-3 text-sm leading-relaxed pl-11">{children}</div>
+      <div className="text-gray-300 space-y-4 text-sm leading-relaxed pl-12">{children}</div>
     </section>
   );
 }
 
 function TOCLink({ href, label }: { href: string; label: string }) {
   return (
-    <a href={href} className="block text-sm text-gray-500 hover:text-cyan-400 transition-colors py-0.5 border-l-2 border-white/5 hover:border-cyan-500/50 pl-3">
+    <a href={href} className="block text-sm text-gray-400 hover:text-cyan-400 transition-colors py-0.5 border-l-2 border-[#1e1e2e] hover:border-cyan-500/60 pl-3">
       {label}
     </a>
   );
@@ -30,9 +30,9 @@ export function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-[#07070d] text-gray-100">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-[#07070d]/95 backdrop-blur-xl border-b border-white/5">
+      <nav className="sticky top-0 z-50 bg-[#07070d]/95 backdrop-blur-xl border-b border-[#1a1a28]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/landing" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
+          <Link to="/landing" className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
@@ -40,32 +40,32 @@ export function PrivacyPolicy() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-sm">VEXA</span>
+            <span className="font-bold text-sm text-white">VEXA</span>
           </div>
-          <Link to="/login" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+          <Link to="/login" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-semibold">
             Sign In
           </Link>
         </div>
       </nav>
 
       {/* Header */}
-      <div className="border-b border-white/5 py-12 px-4">
+      <div className="border-b border-[#1a1a28] py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-gray-400 mb-4 font-medium">
             <FileText className="w-3.5 h-3.5" />
             Legal Document
           </div>
-          <h1 className="text-4xl font-extrabold mb-4">Privacy Policy</h1>
-          <p className="text-gray-400 text-lg mb-6">
+          <h1 className="text-4xl font-extrabold mb-4 text-white">Privacy Policy</h1>
+          <p className="text-gray-300 text-lg mb-6 leading-relaxed">
             Vexa Security Platform is committed to protecting your privacy and the security of your data.
             This policy explains what we collect, how we use it, and your rights.
           </p>
-          <div className="flex flex-wrap gap-4 text-xs text-gray-600">
-            <span><span className="text-gray-400">Effective:</span> {EFFECTIVE_DATE}</span>
-            <span>·</span>
-            <span><span className="text-gray-400">Last Updated:</span> {LAST_UPDATED}</span>
-            <span>·</span>
-            <span><span className="text-gray-400">Version:</span> 2.0</span>
+          <div className="flex flex-wrap gap-4 text-xs text-gray-400">
+            <span><span className="text-gray-300 font-medium">Effective:</span> {EFFECTIVE_DATE}</span>
+            <span className="text-gray-600">·</span>
+            <span><span className="text-gray-300 font-medium">Last Updated:</span> {LAST_UPDATED}</span>
+            <span className="text-gray-600">·</span>
+            <span><span className="text-gray-300 font-medium">Version:</span> 2.0</span>
           </div>
         </div>
       </div>
@@ -74,8 +74,8 @@ export function PrivacyPolicy() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
           {/* Table of Contents — sticky sidebar */}
           <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-xl bg-white/5 border border-white/10 p-4 space-y-1">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Contents</p>
+            <div className="sticky top-24 rounded-xl bg-[#0f0f1a] border border-[#1e1e2e] p-4 space-y-0.5">
+              <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Contents</p>
               <TOCLink href="#overview" label="1. Overview" />
               <TOCLink href="#information-we-collect" label="2. Information We Collect" />
               <TOCLink href="#how-we-use" label="3. How We Use Information" />
@@ -93,7 +93,7 @@ export function PrivacyPolicy() {
           </aside>
 
           {/* Main Content */}
-          <main className="lg:col-span-3 space-y-12">
+          <main className="lg:col-span-3 space-y-14">
             {/* 1. Overview */}
             <Section id="overview" icon={Shield} title="1. Overview">
               <p>
@@ -105,9 +105,9 @@ export function PrivacyPolicy() {
                 By accessing or using Vexa, you agree to the terms of this Privacy Policy. If you do not agree
                 with these terms, please do not use our platform.
               </p>
-              <div className="rounded-lg bg-cyan-500/5 border border-cyan-500/15 p-4 mt-4">
-                <p className="text-cyan-400 font-semibold text-xs mb-1">Key Principle</p>
-                <p className="text-gray-300">
+              <div className="rounded-lg bg-cyan-500/8 border border-cyan-500/25 p-4 mt-2">
+                <p className="text-cyan-300 font-bold text-xs mb-2 uppercase tracking-wide">Key Principle</p>
+                <p className="text-gray-200">
                   Your scan data is yours. Each user's security scan results, discovered assets, and vulnerability
                   findings are stored exclusively under your account and are never shared with, visible to, or
                   accessible by other users of the platform.
@@ -117,32 +117,32 @@ export function PrivacyPolicy() {
 
             {/* 2. Information We Collect */}
             <Section id="information-we-collect" icon={Database} title="2. Information We Collect">
-              <p className="font-medium text-gray-300">2.1 Account Information</p>
+              <p className="font-semibold text-gray-100">2.1 Account Information</p>
               <p>When you create an account, we collect:</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li><strong className="text-gray-300">Email address</strong> — used for authentication and account management</li>
-                <li><strong className="text-gray-300">Display name</strong> — shown in the dashboard interface</li>
-                <li><strong className="text-gray-300">Authentication method</strong> — email/password, Google OAuth, or GitHub OAuth</li>
-                <li><strong className="text-gray-300">Account creation timestamp</strong></li>
+              <ul className="list-disc pl-5 space-y-1.5">
+                <li><strong className="text-gray-100">Email address</strong> — used for authentication and account management</li>
+                <li><strong className="text-gray-100">Display name</strong> — shown in the dashboard interface</li>
+                <li><strong className="text-gray-100">Authentication method</strong> — email/password, Google OAuth, or GitHub OAuth</li>
+                <li><strong className="text-gray-100">Account creation timestamp</strong></li>
               </ul>
-              <p className="font-medium text-gray-300 pt-2">2.2 Scan & Security Data</p>
+              <p className="font-semibold text-gray-100 pt-2">2.2 Scan & Security Data</p>
               <p>When you run security scans, we process and store:</p>
-              <ul className="list-disc pl-5 space-y-1">
+              <ul className="list-disc pl-5 space-y-1.5">
                 <li>Target domains, IP ranges, and infrastructure you choose to scan</li>
                 <li>Discovered assets (subdomains, IPs, services, technologies)</li>
                 <li>Vulnerability findings, CVE identifiers, CVSS scores</li>
                 <li>Port information, TLS certificate data, HTTP headers</li>
                 <li>Scan configuration, timestamps, and duration metadata</li>
               </ul>
-              <p className="font-medium text-gray-300 pt-2">2.3 Usage Data</p>
+              <p className="font-semibold text-gray-100 pt-2">2.3 Usage Data</p>
               <p>We automatically collect:</p>
-              <ul className="list-disc pl-5 space-y-1">
+              <ul className="list-disc pl-5 space-y-1.5">
                 <li>Browser type and version, operating system</li>
                 <li>IP address (for security and abuse prevention)</li>
                 <li>Pages visited within the application and timestamps</li>
                 <li>Error logs and performance data for service improvement</li>
               </ul>
-              <p className="font-medium text-gray-300 pt-2">2.4 Integration Data</p>
+              <p className="font-semibold text-gray-100 pt-2">2.4 Integration Data</p>
               <p>
                 If you configure optional third-party integrations (e.g., VirusTotal API key), we store your
                 API credentials securely in Firestore, encrypted at rest, accessible only to your account.
@@ -154,7 +154,7 @@ export function PrivacyPolicy() {
             {/* 3. How We Use Information */}
             <Section id="how-we-use" icon={Eye} title="3. How We Use Information">
               <p>We use collected information for the following purposes:</p>
-              <div className="space-y-4 mt-2">
+              <div className="space-y-3 mt-2">
                 {[
                   { title: "Service Delivery", desc: "Authenticating your identity, running security scans, displaying results in your private dashboard, and sending scan completion notifications." },
                   { title: "Account Management", desc: "Managing your user profile, notification preferences, and account settings. Sending transactional emails related to your account (password reset, security alerts)." },
@@ -162,14 +162,14 @@ export function PrivacyPolicy() {
                   { title: "Security & Fraud Prevention", desc: "Detecting unauthorized access, preventing abuse of our scanning infrastructure, and ensuring fair use of our services." },
                   { title: "Legal Compliance", desc: "Complying with applicable laws, regulations, and legal processes, including responding to lawful requests from public authorities." },
                 ].map(item => (
-                  <div key={item.title} className="rounded-lg bg-white/3 border border-white/5 p-3">
-                    <p className="font-medium text-gray-300 text-xs mb-1">{item.title}</p>
-                    <p className="text-xs">{item.desc}</p>
+                  <div key={item.title} className="rounded-lg bg-[#0f0f1a] border border-[#1e1e2e] p-4">
+                    <p className="font-semibold text-gray-100 text-sm mb-1.5">{item.title}</p>
+                    <p className="text-gray-300">{item.desc}</p>
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-xs">
-                <strong className="text-gray-300">We do not:</strong> sell your personal data, share scan results with third parties,
+              <p className="mt-3">
+                <strong className="text-gray-100">We do not:</strong> sell your personal data, share scan results with third parties,
                 use your security data for advertising, or transfer your data to data brokers.
               </p>
             </Section>
@@ -181,7 +181,7 @@ export function PrivacyPolicy() {
                 for identity management. All data is stored on Google Cloud Platform infrastructure with
                 the following security measures:
               </p>
-              <ul className="list-disc pl-5 space-y-1 mt-2">
+              <ul className="list-disc pl-5 space-y-1.5 mt-2">
                 <li>Data encrypted at rest using AES-256 encryption</li>
                 <li>Data encrypted in transit using TLS 1.3</li>
                 <li>Firestore Security Rules enforce strict per-user data isolation — your data can only be read or written by your authenticated account</li>
@@ -189,13 +189,13 @@ export function PrivacyPolicy() {
                 <li>API keys and integration credentials stored with additional access controls</li>
               </ul>
               <p className="mt-3">
-                Scan data is additionally cached in your browser's <code className="bg-white/5 px-1 rounded text-xs">localStorage</code> for
+                Scan data is additionally cached in your browser's <code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-xs text-gray-200 border border-[#2a2a3e]">localStorage</code> for
                 performance. This local cache is keyed to your user ID, ensuring data is not shared
                 between different users who may access the same browser.
               </p>
-              <div className="rounded-lg bg-orange-500/5 border border-orange-500/15 p-4 mt-4">
-                <p className="text-orange-400 font-semibold text-xs mb-1">Important Notice</p>
-                <p>
+              <div className="rounded-lg bg-orange-500/8 border border-orange-500/25 p-4 mt-3">
+                <p className="text-orange-300 font-bold text-xs mb-2 uppercase tracking-wide">Important Notice</p>
+                <p className="text-gray-200">
                   While we implement industry-standard security measures, no system is 100% secure.
                   We recommend using strong, unique passwords and enabling multi-factor authentication
                   where available.
@@ -233,20 +233,20 @@ export function PrivacyPolicy() {
                     data: "Domain names when you configure your VirusTotal API key",
                   },
                 ].map(svc => (
-                  <div key={svc.name} className="rounded-lg bg-white/3 border border-white/5 p-4">
+                  <div key={svc.name} className="rounded-lg bg-[#0f0f1a] border border-[#1e1e2e] p-4">
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <p className="font-medium text-gray-300 text-sm">{svc.name}</p>
+                      <p className="font-semibold text-gray-100 text-sm">{svc.name}</p>
                       <a
                         href={svc.privacy}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 flex-shrink-0"
+                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 flex-shrink-0 font-medium"
                       >
-                        Privacy Policy
+                        Privacy Policy ↗
                       </a>
                     </div>
-                    <p className="text-xs mb-1"><span className="text-gray-500">Purpose:</span> {svc.purpose}</p>
-                    <p className="text-xs"><span className="text-gray-500">Data shared:</span> {svc.data}</p>
+                    <p className="text-xs mb-1"><span className="text-gray-400 font-medium">Purpose:</span> <span className="text-gray-300">{svc.purpose}</span></p>
+                    <p className="text-xs"><span className="text-gray-400 font-medium">Data shared:</span> <span className="text-gray-300">{svc.data}</span></p>
                   </div>
                 ))}
               </div>
@@ -258,19 +258,19 @@ export function PrivacyPolicy() {
                 Vexa operates as a security tool that scans infrastructure you own or have explicit
                 written permission to test. This is a core requirement of our Terms of Service.
               </p>
-              <p className="font-medium text-gray-300 pt-2">User Data Isolation</p>
+              <p className="font-semibold text-gray-100 pt-2">User Data Isolation</p>
               <p>
                 All scan results — including discovered assets, vulnerability findings, IP addresses,
                 port data, and certificate information — are stored exclusively under your user account.
                 This isolation is enforced at multiple levels:
               </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li><strong className="text-gray-300">Database level:</strong> Firestore security rules require authentication and match the requesting user's UID to the document owner</li>
-                <li><strong className="text-gray-300">Browser level:</strong> localStorage data is keyed by user ID (<code className="bg-white/5 px-1 rounded text-xs">vexa_scans_v4_{"{userId}"}</code>) so different users of the same browser never see each other's data</li>
-                <li><strong className="text-gray-300">Application level:</strong> All data queries include user ID filters preventing cross-user data access</li>
+              <ul className="list-disc pl-5 space-y-1.5">
+                <li><strong className="text-gray-100">Database level:</strong> Firestore security rules require authentication and match the requesting user's UID to the document owner</li>
+                <li><strong className="text-gray-100">Browser level:</strong> localStorage data is keyed by user ID (<code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-xs text-gray-200 border border-[#2a2a3e]">vexa_scans_v4_{"{userId}"}</code>) so different users of the same browser never see each other's data</li>
+                <li><strong className="text-gray-100">Application level:</strong> All data queries include user ID filters preventing cross-user data access</li>
               </ul>
               <p className="pt-2">
-                <strong className="text-gray-300">No employee access:</strong> Vexa employees and administrators do not routinely access
+                <strong className="text-gray-100">No employee access:</strong> Vexa employees and administrators do not routinely access
                 your specific scan results. Access to user scan data would only occur in response to a
                 lawful legal request, with notification to you where legally permissible.
               </p>
@@ -290,15 +290,15 @@ export function PrivacyPolicy() {
                   { right: "Right to Restrict Processing", desc: "Request that we limit how we use your data in certain circumstances." },
                   { right: "Right to Object", desc: "Object to processing of your personal data for certain purposes, including direct marketing (which we do not engage in)." },
                 ].map(r => (
-                  <div key={r.right} className="rounded-lg bg-white/3 border border-white/5 p-3">
-                    <p className="font-medium text-gray-300 text-xs mb-1">{r.right}</p>
-                    <p className="text-xs">{r.desc}</p>
+                  <div key={r.right} className="rounded-lg bg-[#0f0f1a] border border-[#1e1e2e] p-4">
+                    <p className="font-semibold text-gray-100 text-sm mb-1.5">{r.right}</p>
+                    <p className="text-gray-300">{r.desc}</p>
                   </div>
                 ))}
               </div>
               <p className="mt-3">
                 To exercise any of these rights, contact us at{" "}
-                <a href="mailto:privacy@vexa.security" className="text-cyan-400 hover:text-cyan-300">privacy@vexa.security</a>.
+                <a href="mailto:privacy@vexa.security" className="text-cyan-400 hover:text-cyan-300 font-medium">privacy@vexa.security</a>.
                 We will respond within 30 days.
               </p>
             </Section>
@@ -306,15 +306,15 @@ export function PrivacyPolicy() {
             {/* 8. Data Retention */}
             <Section id="data-retention" icon={RefreshCw} title="8. Data Retention">
               <p>We retain your data according to the following schedule:</p>
-              <div className="rounded-lg border border-white/10 overflow-hidden mt-3">
+              <div className="rounded-lg border border-[#1e1e2e] overflow-hidden mt-3">
                 <table className="w-full text-sm">
-                  <thead className="bg-white/5">
+                  <thead className="bg-[#111118]">
                     <tr>
-                      <th className="text-left px-4 py-2 text-gray-400 font-medium text-xs">Data Type</th>
-                      <th className="text-left px-4 py-2 text-gray-400 font-medium text-xs">Retention Period</th>
+                      <th className="text-left px-4 py-3 text-gray-300 font-semibold text-xs uppercase tracking-wide">Data Type</th>
+                      <th className="text-left px-4 py-3 text-gray-300 font-semibold text-xs uppercase tracking-wide">Retention Period</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#1a1a28]">
                     {[
                       ["Account information", "Until account deletion"],
                       ["Scan results & findings", "Until account deletion or manual deletion"],
@@ -323,9 +323,9 @@ export function PrivacyPolicy() {
                       ["Error & usage logs", "30 days, aggregated and anonymized"],
                       ["Deleted account data", "30 days (for recovery), then permanently deleted"],
                     ].map(([type, period]) => (
-                      <tr key={type} className="hover:bg-white/3">
-                        <td className="px-4 py-2.5 text-gray-300 text-xs">{type}</td>
-                        <td className="px-4 py-2.5 text-gray-400 text-xs">{period}</td>
+                      <tr key={type} className="hover:bg-[#0f0f1a]">
+                        <td className="px-4 py-3 text-gray-200 text-sm font-medium">{type}</td>
+                        <td className="px-4 py-3 text-gray-300 text-sm">{period}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -363,17 +363,17 @@ export function PrivacyPolicy() {
                     required: false,
                   },
                 ].map(c => (
-                  <div key={c.name} className="rounded-lg bg-white/3 border border-white/5 p-4">
+                  <div key={c.name} className="rounded-lg bg-[#0f0f1a] border border-[#1e1e2e] p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium text-gray-300 text-sm">{c.name}</p>
+                      <p className="font-semibold text-gray-100 text-sm">{c.name}</p>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 bg-white/5 px-2 py-0.5 rounded">{c.type}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded ${c.required ? "bg-cyan-500/10 text-cyan-400" : "bg-white/5 text-gray-500"}`}>
+                        <span className="text-xs text-gray-300 bg-[#1a1a28] border border-[#2a2a3e] px-2 py-0.5 rounded font-medium">{c.type}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${c.required ? "bg-cyan-500/15 border border-cyan-500/30 text-cyan-300" : "bg-[#1a1a28] border border-[#2a2a3e] text-gray-300"}`}>
                           {c.required ? "Required" : "Optional"}
                         </span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500">{c.purpose}</p>
+                    <p className="text-sm text-gray-300">{c.purpose}</p>
                   </div>
                 ))}
               </div>
@@ -388,7 +388,7 @@ export function PrivacyPolicy() {
                 Vexa is not intended for use by individuals under the age of 16 (or 13 in the United States).
                 We do not knowingly collect personal information from children. If you believe we have
                 inadvertently collected such information, please contact us immediately at{" "}
-                <a href="mailto:privacy@vexa.security" className="text-cyan-400">privacy@vexa.security</a> and
+                <a href="mailto:privacy@vexa.security" className="text-cyan-400 hover:text-cyan-300 font-medium">privacy@vexa.security</a> and
                 we will delete it promptly.
               </p>
             </Section>
@@ -413,7 +413,7 @@ export function PrivacyPolicy() {
                 We may update this Privacy Policy from time to time to reflect changes in our practices,
                 technology, legal requirements, or other factors. When we make material changes, we will:
               </p>
-              <ul className="list-disc pl-5 space-y-1">
+              <ul className="list-disc pl-5 space-y-1.5">
                 <li>Update the "Last Updated" date at the top of this page</li>
                 <li>Display a notice in the application dashboard</li>
                 <li>Send an email notification to your registered email address for significant changes</li>
@@ -430,42 +430,48 @@ export function PrivacyPolicy() {
                 If you have questions, concerns, or requests regarding this Privacy Policy or our data
                 practices, please contact us:
               </p>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-6 mt-4">
-                <div className="space-y-3">
+              <div className="rounded-xl bg-[#0f0f1a] border border-[#1e1e2e] p-6 mt-4">
+                <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-4 h-4 text-cyan-400" />
+                    </div>
                     <div>
-                      <p className="text-xs text-gray-500">Privacy Inquiries</p>
-                      <a href="mailto:privacy@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300">privacy@vexa.security</a>
+                      <p className="text-xs text-gray-400 font-medium mb-0.5">Privacy Inquiries</p>
+                      <a href="mailto:privacy@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">privacy@vexa.security</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Shield className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-4 h-4 text-cyan-400" />
+                    </div>
                     <div>
-                      <p className="text-xs text-gray-500">Security Issues</p>
-                      <a href="mailto:security@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300">security@vexa.security</a>
+                      <p className="text-xs text-gray-400 font-medium mb-0.5">Security Issues</p>
+                      <a href="mailto:security@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">security@vexa.security</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Globe className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
+                      <Globe className="w-4 h-4 text-cyan-400" />
+                    </div>
                     <div>
-                      <p className="text-xs text-gray-500">Data Protection Officer</p>
-                      <a href="mailto:dpo@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300">dpo@vexa.security</a>
+                      <p className="text-xs text-gray-400 font-medium mb-0.5">Data Protection Officer</p>
+                      <a href="mailto:dpo@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">dpo@vexa.security</a>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 mt-4 pt-4 border-t border-white/5">
+                <p className="text-xs text-gray-400 mt-5 pt-4 border-t border-[#1e1e2e]">
                   We aim to respond to all privacy-related inquiries within 5 business days and
                   will resolve data requests within 30 days as required by applicable law.
                 </p>
               </div>
             </Section>
 
-            <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <p className="text-xs text-gray-600">
+            <div className="border-t border-[#1a1a28] pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <p className="text-sm text-gray-400">
                 © {new Date().getFullYear()} Vexa Security Platform. All rights reserved.
               </p>
-              <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+              <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-semibold">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Home
               </Link>

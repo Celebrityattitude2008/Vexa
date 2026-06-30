@@ -11,8 +11,12 @@ import { Monitoring } from "./pages/Monitoring";
 import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
+import { Landing } from "./pages/Landing";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
 export const router = createBrowserRouter([
+  { path: "/landing", Component: Landing },
+  { path: "/privacy", Component: PrivacyPolicy },
   { path: "/login", Component: Login },
   {
     path: "/",

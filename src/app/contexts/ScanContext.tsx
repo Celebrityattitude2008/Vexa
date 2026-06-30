@@ -22,8 +22,12 @@ import {
 } from "../../firebase";
 import { auth } from "../../firebase";
 
-// ── Local Storage helpers ────────────────────────────────────────────────────
-const LS_KEY = "vexa_scans_v4";
+// ── Per-user Local Storage helpers ──────────────────────────────────────────
+// Each user's scans are stored under their own key so users never see each
+// other's data even when they share the same browser.
+function lsKey(uid: string) {
+  return `vexa_scans_v4_${uid}`;
+}
 
 function makeFakeTimestamp(isoStr: string | null | undefined) {
   if (!isoStr) return null;
@@ -49,17 +53,17 @@ function deserializeScan(data: any): ScanJob {
   };
 }
 
-function loadLocalScans(): ScanJob[] {
+function loadUserScans(uid: string): ScanJob[] {
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(lsKey(uid));
     if (!raw) return [];
     return (JSON.parse(raw) as any[]).map(deserializeScan);
   } catch { return []; }
 }
 
-function saveLocalScans(scans: ScanJob[]) {
+function saveUserScans(uid: string, scans: ScanJob[]) {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(scans.map(serializeScan)));
+    localStorage.setItem(lsKey(uid), JSON.stringify(scans.map(serializeScan)));
   } catch { /* storage full or private mode */ }
 }
 
@@ -138,46 +142,63 @@ interface ScanContextValue {
 const ScanContext = createContext<ScanContextValue | undefined>(undefined);
 
 export function ScanProvider({ children }: { children: ReactNode }) {
-  const [scans, setScans] = useState<ScanJob[]>(() => loadLocalScans());
+  // Start with empty scans — loaded per-user once auth resolves
+  const [scans, setScans] = useState<ScanJob[]>([]);
   const [firestoreOk, setFirestoreOk] = useState(true);
-  const scansRef = useRef<ScanJob[]>(loadLocalScans());
+
+  const scansRef = useRef<ScanJob[]>([]);
+  const currentUidRef = useRef<string | null>(null);
   const completingRef = useRef<Set<string>>(new Set());
 
-  // Persist to localStorage whenever scans change
+  // ── Persist to user-specific localStorage whenever scans change ────────────
   useEffect(() => {
-    saveLocalScans(scans);
     scansRef.current = scans;
+    const uid = currentUidRef.current;
+    if (uid) {
+      saveUserScans(uid, scans);
+    }
   }, [scans]);
 
-  // ── Local mutation helpers ─────────────────────────────────────────────────
-  const upsertScan = useCallback((id: string, patch: Partial<ScanJob>) => {
-    setScans(prev => {
-      const idx = prev.findIndex(s => s.id === id);
-      if (idx === -1) return prev;
-      const updated = [...prev];
-      updated[idx] = { ...updated[idx], ...patch };
-      return updated;
-    });
-  }, []);
-
-  // ── Firestore sync (best-effort, completely optional) ──────────────────────
+  // ── Auth state: load/clear per-user scans ──────────────────────────────────
   useEffect(() => {
     let unsubScans: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       unsubScans?.();
-      if (!firebaseUser) return;
+      unsubScans = null;
+
+      if (!firebaseUser) {
+        // User logged out — clear all scan state immediately
+        currentUidRef.current = null;
+        setScans([]);
+        scansRef.current = [];
+        completingRef.current.clear();
+        return;
+      }
+
+      const uid = firebaseUser.uid;
+
+      // Only reload from localStorage if switching users
+      if (currentUidRef.current !== uid) {
+        currentUidRef.current = uid;
+        const userScans = loadUserScans(uid);
+        setScans(userScans);
+        scansRef.current = userScans;
+        completingRef.current.clear();
+      }
 
       // Attempt to sync from Firestore — if it fails, we just use localStorage
       try {
         unsubScans = onSnapshot(
           getScansQuery(),
           (snapshot) => {
+            // Only process if this is still the current user
+            if (currentUidRef.current !== uid) return;
+
             const remoteDocs = snapshot.docs
               .map(d => deserializeScan({ id: d.id, ...d.data() }))
-              .filter((s: any) => !s._isReport);
+              .filter((s: any) => !s._isReport && s.createdBy === uid);
 
-            // Merge: remote wins for fields it has, but keep local _assets/_findings if remote doesn't
             setScans(prev => {
               const merged = [...prev];
               for (const remote of remoteDocs) {
@@ -197,7 +218,6 @@ export function ScanProvider({ children }: { children: ReactNode }) {
             setFirestoreOk(true);
           },
           (err) => {
-            // Firestore unavailable — silently continue with localStorage data
             console.info("Firestore unavailable, using local storage:", err.code || err.message);
             setFirestoreOk(false);
           }
@@ -209,6 +229,17 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     });
 
     return () => { unsubAuth(); unsubScans?.(); };
+  }, []);
+
+  // ── Local mutation helpers ─────────────────────────────────────────────────
+  const upsertScan = useCallback((id: string, patch: Partial<ScanJob>) => {
+    setScans(prev => {
+      const idx = prev.findIndex(s => s.id === id);
+      if (idx === -1) return prev;
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], ...patch };
+      return updated;
+    });
   }, []);
 
   // ── Best-effort Firestore write ────────────────────────────────────────────
@@ -243,12 +274,11 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     };
     setScans(prev => [newScan, ...prev]);
 
-    // Best-effort Firestore
     tryFirestore(async () => {
       const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
       const { db } = await import("../../firebase");
       await addDoc(collection(db, "scans"), {
-        id, // store local id so we can correlate
+        id,
         name: data.name,
         target: data.target,
         scanType: data.scanType,
@@ -289,7 +319,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     });
   }, [upsertScan]);
 
-  // ── Scan engine (local, 2-second tick) ───────────────────────────────────
+  // ── Scan engine (local, 2-second tick) ────────────────────────────────────
   useEffect(() => {
     const timer = window.setInterval(async () => {
       const current = scansRef.current;
@@ -314,7 +344,6 @@ export function ScanProvider({ children }: { children: ReactNode }) {
       const next = Math.min(100, prev + increment);
       const phase = phaseForProgress(next);
 
-      // Trigger async subdomain discovery at DNS phase boundary
       if (prev < 12 && next >= 12) _handleDnsPhase(running);
 
       if (next >= 100) {
@@ -340,8 +369,6 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     try {
       const subs = await discoverSubdomains(scan.target);
       if (subs.length > 0) {
-        upsertScan(scan.id, { phase: "DNS Resolution" } as any);
-        // Store subdomains in scan for completion phase
         setScans(prev => {
           const idx = prev.findIndex(s => s.id === scan.id);
           if (idx === -1) return prev;
@@ -355,23 +382,20 @@ export function ScanProvider({ children }: { children: ReactNode }) {
 
   async function _completeScan(scan: ScanJob) {
     try {
-      const userId = auth.currentUser?.uid;
+      const uid = currentUidRef.current;
       const subdomains: string[] = (scan as any)._discoveredSubdomains || [];
 
-      // VirusTotal if configured
       let vtResult: { malicious: number; categories: string[] } | null = null;
-      if (userId) {
+      if (uid) {
         try {
-          const vtKey = await getIntegrationApiKey(userId, "virustotal");
+          const vtKey = await getIntegrationApiKey(uid, "virustotal");
           if (vtKey) vtResult = await virusTotalLookup(scan.target, vtKey);
         } catch { /* ignore */ }
       }
 
-      // Build assets and findings purely in memory
       const assets = buildEnrichedAssets(scan.id, scan.target, subdomains);
       const findings = buildEnrichedFindings(assets);
 
-      // Append VirusTotal finding if applicable
       const allFindings = [...findings];
       if (vtResult && vtResult.malicious > 0 && assets.length > 0) {
         allFindings.push({
@@ -409,7 +433,6 @@ export function ScanProvider({ children }: { children: ReactNode }) {
 
       upsertScan(scan.id, completedPatch);
 
-      // Best-effort Firestore write of completed scan data
       tryFirestore(async () => {
         const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
         const { db } = await import("../../firebase");
@@ -426,7 +449,6 @@ export function ScanProvider({ children }: { children: ReactNode }) {
         });
       });
 
-      // Seed alert (best-effort)
       tryFirestore(async () => {
         const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
         const { db } = await import("../../firebase");
@@ -439,6 +461,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
           asset: scan.target,
           timestamp: serverTimestamp(),
           read: false,
+          createdBy: uid,
         });
       });
     } catch (err) {

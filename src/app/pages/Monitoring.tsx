@@ -13,25 +13,18 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  createScanJob,
-  updateScanStatus,
-  db,
-  type ScanJob,
-  type ScanStatus,
-} from "../../firebase";
+import { type ScanJob } from "../../firebase";
 import { useAuth } from "../components/AuthProvider";
 import { useScanContext } from "../contexts/ScanContext";
 import { formatDistanceToNow } from "date-fns";
-import { doc, deleteDoc } from "firebase/firestore";
 
-function statusColor(status: ScanStatus) {
+function statusColor(status: string) {
   switch (status) {
-    case "running": return "text-cyan-400 bg-cyan-500/20";
+    case "running":   return "text-cyan-400 bg-cyan-500/20";
     case "completed": return "text-green-400 bg-green-500/20";
-    case "failed": return "text-red-400 bg-red-500/20";
-    case "paused": return "text-yellow-400 bg-yellow-500/20";
-    default: return "text-gray-400 bg-white/10";
+    case "failed":    return "text-red-400 bg-red-500/20";
+    case "paused":    return "text-yellow-400 bg-yellow-500/20";
+    default:          return "text-gray-400 bg-white/10";
   }
 }
 
@@ -59,22 +52,17 @@ function scanAge(scan: ScanJob): string {
 
 export function Monitoring() {
   const { user } = useAuth();
-  const { scans, firestoreOk } = useScanContext();
+  const { scans, createScan, deleteScan, pauseScan } = useScanContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [showNewScanModal, setShowNewScanModal] = useState(false);
   const [scanForm, setScanForm] = useState({ name: "", target: "", scanType: "full" });
   const [submitting, setSubmitting] = useState(false);
 
-  const filtered = scans.filter(
-    (s) => statusFilter === "all" || s.status === statusFilter
-  );
-
-  const activeScans = filtered.filter((s) => s.status === "running");
-  const queuedScans = filtered.filter((s) => s.status === "queued");
-  const completedScans = filtered.filter(
-    (s) => s.status === "completed" || s.status === "failed"
-  );
+  const filtered = scans.filter(s => statusFilter === "all" || s.status === statusFilter);
+  const activeScans   = filtered.filter(s => s.status === "running");
+  const queuedScans   = filtered.filter(s => s.status === "queued");
+  const completedScans = filtered.filter(s => s.status === "completed" || s.status === "failed");
 
   const handleStartScan = async () => {
     if (!scanForm.name.trim() || !scanForm.target.trim()) {
@@ -84,7 +72,7 @@ export function Monitoring() {
     if (!user) { toast.error("You must be signed in."); return; }
     setSubmitting(true);
     try {
-      await createScanJob(user.uid, scanForm);
+      await createScan(user.uid, scanForm);
       setShowNewScanModal(false);
       setScanForm({ name: "", target: "", scanType: "full" });
       toast.success("Scan queued", { description: `"${scanForm.name}" has been added to the queue.` });
@@ -97,7 +85,7 @@ export function Monitoring() {
 
   const handlePause = async (scan: ScanJob) => {
     try {
-      await updateScanStatus(scan.id, scan.status === "paused" ? "running" : "paused");
+      await pauseScan(scan);
       toast.success(scan.status === "paused" ? "Scan resumed" : "Scan paused");
     } catch (err: any) {
       toast.error("Failed to update scan: " + (err?.message || ""));
@@ -106,7 +94,7 @@ export function Monitoring() {
 
   const handleDelete = async (scan: ScanJob) => {
     try {
-      await deleteDoc(doc(db, "scans", scan.id));
+      await deleteScan(scan.id);
       toast.success("Scan removed");
     } catch (err: any) {
       toast.error("Failed to delete scan: " + (err?.message || ""));
@@ -114,10 +102,10 @@ export function Monitoring() {
   };
 
   const statCounts = {
-    running: scans.filter((s) => s.status === "running").length,
-    completed: scans.filter((s) => s.status === "completed").length,
-    queued: scans.filter((s) => s.status === "queued").length,
-    findings: scans.reduce((sum, s) => sum + (s.findings || 0), 0),
+    running:   scans.filter(s => s.status === "running").length,
+    completed: scans.filter(s => s.status === "completed").length,
+    queued:    scans.filter(s => s.status === "queued").length,
+    findings:  scans.reduce((sum, s) => sum + (s.findings || 0), 0),
   };
 
   return (
@@ -130,7 +118,7 @@ export function Monitoring() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setFiltersOpen((v) => !v)}
+            onClick={() => setFiltersOpen(v => !v)}
             className={`px-3 md:px-4 py-2 rounded-lg border flex items-center gap-2 transition-all text-sm ${
               filtersOpen
                 ? "bg-[color:var(--accent-muted)] border-[color:var(--accent-border)] text-[color:var(--accent-text)]"
@@ -151,17 +139,6 @@ export function Monitoring() {
         </div>
       </div>
 
-      {/* Firestore error banner */}
-      {!firestoreOk && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span>
-            Could not connect to Firestore. Make sure your rules allow authenticated reads/writes to the{" "}
-            <code className="font-mono">scans</code> collection.
-          </span>
-        </div>
-      )}
-
       {/* Inline Filters */}
       {filtersOpen && (
         <div className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4">
@@ -170,7 +147,7 @@ export function Monitoring() {
               <label className="block text-sm font-medium mb-2 text-gray-300">Status</label>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={e => setStatusFilter(e.target.value)}
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)]"
               >
                 <option value="all">All Statuses</option>
@@ -203,10 +180,10 @@ export function Monitoring() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[
-          { label: "Active Scans", value: statCounts.running, color: "text-green-400", icon: Activity, dot: statCounts.running > 0 },
-          { label: "Completed Today", value: statCounts.completed, color: "text-green-400", icon: CheckCircle2 },
-          { label: "Queued", value: statCounts.queued, color: "text-yellow-400", icon: Clock },
-          { label: "Total Findings", value: statCounts.findings, color: "text-orange-400", icon: AlertTriangle },
+          { label: "Active Scans",     value: statCounts.running,   color: "text-green-400",  icon: Activity,       dot: true },
+          { label: "Completed Today",  value: statCounts.completed, color: "text-green-400",  icon: CheckCircle2,   dot: false },
+          { label: "Queued",           value: statCounts.queued,    color: "text-yellow-400", icon: Clock,          dot: false },
+          { label: "Total Findings",   value: statCounts.findings,  color: "text-orange-400", icon: AlertTriangle,  dot: false },
         ].map((stat, i) => (
           <div key={i} className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4">
             <div className="flex items-center justify-between mb-2">
@@ -244,7 +221,7 @@ export function Monitoring() {
           </div>
         ) : (
           <div className="space-y-3">
-            {[...activeScans, ...queuedScans].map((scan) => (
+            {[...activeScans, ...queuedScans].map(scan => (
               <div key={scan.id} className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
@@ -274,13 +251,14 @@ export function Monitoring() {
                 <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
                   <span>{scanTypeLabel(scan.scanType)}</span>
                   <span>Progress: {scan.progress}%</span>
+                  {scan.phase && <span className="text-cyan-500/70">{scan.phase}</span>}
                   <span>{scanAge(scan)}</span>
                 </div>
                 {scan.progress > 0 && (
                   <div className="mt-3 h-1.5 bg-black/40 rounded-full overflow-hidden">
                     <div
                       style={{ width: `${scan.progress}%`, backgroundColor: "var(--accent-primary)" }}
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full transition-all duration-700"
                     />
                   </div>
                 )}
@@ -303,7 +281,7 @@ export function Monitoring() {
           </div>
         ) : (
           <div className="space-y-3">
-            {completedScans.map((scan) => (
+            {completedScans.map(scan => (
               <div key={scan.id} className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -317,6 +295,11 @@ export function Monitoring() {
                     {scan.findings > 0 && (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-orange-500/20 text-orange-400">
                         {scan.findings} findings
+                      </span>
+                    )}
+                    {scan._assets && scan._assets.length > 0 && (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-cyan-500/20 text-cyan-400">
+                        {scan._assets.length} assets
                       </span>
                     )}
                     <button
@@ -362,7 +345,7 @@ export function Monitoring() {
                   type="text"
                   placeholder="e.g. Full Infrastructure Scan"
                   value={scanForm.name}
-                  onChange={(e) => setScanForm((f) => ({ ...f, name: e.target.value }))}
+                  onChange={e => setScanForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
                 />
               </div>
@@ -374,7 +357,7 @@ export function Monitoring() {
                   type="text"
                   placeholder="e.g. example.com or 192.168.1.0/24"
                   value={scanForm.target}
-                  onChange={(e) => setScanForm((f) => ({ ...f, target: e.target.value }))}
+                  onChange={e => setScanForm(f => ({ ...f, target: e.target.value }))}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
                 />
               </div>
@@ -382,7 +365,7 @@ export function Monitoring() {
                 <label className="block text-sm font-medium mb-1.5 text-gray-300">Scan Type</label>
                 <select
                   value={scanForm.scanType}
-                  onChange={(e) => setScanForm((f) => ({ ...f, scanType: e.target.value }))}
+                  onChange={e => setScanForm(f => ({ ...f, scanType: e.target.value }))}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
                 >
                   <option value="full">Full Infrastructure Scan</option>

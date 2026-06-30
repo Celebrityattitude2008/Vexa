@@ -1,72 +1,124 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { onSnapshot } from "firebase/firestore";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { onAuthStateChanged } from "firebase/auth";
+import { onSnapshot } from "firebase/firestore";
 import {
   getScansQuery,
-  updateScanProgress,
-  updateScanStatus,
-  createEnrichedAssetsForScan,
-  createEnrichedFindingsForScan,
+  buildEnrichedAssets,
+  buildEnrichedFindings,
   getIntegrationApiKey,
   type ScanJob,
   type Asset,
   type Finding,
+  type ScanStatus,
 } from "../../firebase";
 import { auth } from "../../firebase";
 
+// ── Local Storage helpers ────────────────────────────────────────────────────
+const LS_KEY = "vexa_scans_v4";
+
+function makeFakeTimestamp(isoStr: string | null | undefined) {
+  if (!isoStr) return null;
+  const d = new Date(isoStr);
+  return { toDate: () => d, toMillis: () => d.getTime(), seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 };
+}
+
+function serializeScan(scan: ScanJob): object {
+  return {
+    ...scan,
+    createdAt: (scan.createdAt as any)?.toDate?.()?.toISOString?.() ?? scan.createdAt ?? null,
+    startedAt: (scan.startedAt as any)?.toDate?.()?.toISOString?.() ?? scan.startedAt ?? null,
+    completedAt: (scan.completedAt as any)?.toDate?.()?.toISOString?.() ?? scan.completedAt ?? null,
+  };
+}
+
+function deserializeScan(data: any): ScanJob {
+  return {
+    ...data,
+    createdAt: typeof data.createdAt === "string" ? makeFakeTimestamp(data.createdAt) as any : data.createdAt ?? null,
+    startedAt: typeof data.startedAt === "string" ? makeFakeTimestamp(data.startedAt) as any : data.startedAt ?? null,
+    completedAt: typeof data.completedAt === "string" ? makeFakeTimestamp(data.completedAt) as any : data.completedAt ?? null,
+  };
+}
+
+function loadLocalScans(): ScanJob[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    return (JSON.parse(raw) as any[]).map(deserializeScan);
+  } catch { return []; }
+}
+
+function saveLocalScans(scans: ScanJob[]) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(scans.map(serializeScan)));
+  } catch { /* storage full or private mode */ }
+}
+
+function newLocalTimestamp() {
+  const d = new Date();
+  return { toDate: () => d, toMillis: () => d.getTime(), seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 } as any;
+}
+
+function uuid(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
 // ── Scan phases ──────────────────────────────────────────────────────────────
 const PHASES = [
-  { name: "DNS Resolution",       start: 0,  end: 12  },
-  { name: "Port Discovery",       start: 12, end: 30  },
-  { name: "Service Detection",    start: 30, end: 52  },
-  { name: "Vulnerability Assessment", start: 52, end: 80 },
-  { name: "Threat Intelligence",  start: 80, end: 95  },
-  { name: "Generating Report",    start: 95, end: 100 },
+  { name: "DNS Resolution",           start: 0,  end: 12  },
+  { name: "Port Discovery",           start: 12, end: 30  },
+  { name: "Service Detection",        start: 30, end: 52  },
+  { name: "Vulnerability Assessment", start: 52, end: 80  },
+  { name: "Threat Intelligence",      start: 80, end: 95  },
+  { name: "Generating Report",        start: 95, end: 100 },
 ];
 
 function phaseForProgress(p: number) {
-  for (const ph of [...PHASES].reverse()) {
-    if (p >= ph.start) return ph.name;
-  }
+  for (const ph of [...PHASES].reverse()) if (p >= ph.start) return ph.name;
   return PHASES[0].name;
 }
 
-// ── Real API helpers ─────────────────────────────────────────────────────────
+// ── API helpers ──────────────────────────────────────────────────────────────
 async function discoverSubdomains(domain: string): Promise<string[]> {
   try {
     const clean = domain.replace(/https?:\/\//, "").split("/")[0].split(":")[0];
-    const baseDomain = clean.split(".").slice(-2).join(".");
-    const res = await fetch(
-      `https://api.hackertarget.com/hostsearch/?q=${baseDomain}`,
-      { signal: AbortSignal.timeout(10000) }
-    );
+    const base = clean.split(".").slice(-2).join(".");
+    const res = await fetch(`https://api.hackertarget.com/hostsearch/?q=${base}`, {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) return [];
     const text = await res.text();
-    if (text.includes("error") || text.includes("API count exceeded") || text.includes("html")) return [];
-    return text
-      .split("\n")
-      .map(l => l.split(",")[0].trim())
-      .filter(h => h.length > 0 && h.includes("."))
-      .slice(0, 8);
+    if (text.includes("error") || text.includes("API count") || text.includes("<html")) return [];
+    return text.split("\n").map(l => l.split(",")[0].trim()).filter(h => h.length > 0 && h.includes(".")).slice(0, 8);
   } catch { return []; }
 }
 
 async function virusTotalLookup(domain: string, apiKey: string): Promise<{ malicious: number; categories: string[] } | null> {
   try {
     const clean = domain.replace(/https?:\/\//, "").split("/")[0];
-    const res = await fetch(
-      `https://www.virustotal.com/api/v3/domains/${clean}`,
-      { headers: { "x-apikey": apiKey }, signal: AbortSignal.timeout(8000) }
-    );
+    const res = await fetch(`https://www.virustotal.com/api/v3/domains/${clean}`, {
+      headers: { "x-apikey": apiKey },
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) return null;
     const data = await res.json();
     const stats = data?.data?.attributes?.last_analysis_stats || {};
-    const categories = Object.values(data?.data?.attributes?.categories || {}) as string[];
-    return { malicious: (stats.malicious || 0) + (stats.suspicious || 0), categories };
+    const cats = Object.values(data?.data?.attributes?.categories || {}) as string[];
+    return { malicious: (stats.malicious || 0) + (stats.suspicious || 0), categories: cats };
   } catch { return null; }
 }
 
-// ── Context ──────────────────────────────────────────────────────────────────
+// ── Context types ────────────────────────────────────────────────────────────
 interface ScanContextValue {
   scans: ScanJob[];
   assets: Asset[];
@@ -78,17 +130,324 @@ interface ScanContextValue {
   hasScans: boolean;
   isRunning: boolean;
   firestoreOk: boolean;
+  createScan: (userId: string, data: { name: string; target: string; scanType: string }) => Promise<string>;
+  deleteScan: (id: string) => Promise<void>;
+  pauseScan: (scan: ScanJob) => Promise<void>;
 }
 
 const ScanContext = createContext<ScanContextValue | undefined>(undefined);
 
 export function ScanProvider({ children }: { children: ReactNode }) {
-  const [scans, setScans] = useState<ScanJob[]>([]);
+  const [scans, setScans] = useState<ScanJob[]>(() => loadLocalScans());
   const [firestoreOk, setFirestoreOk] = useState(true);
-  const scansRef = useRef<ScanJob[]>([]);
+  const scansRef = useRef<ScanJob[]>(loadLocalScans());
   const completingRef = useRef<Set<string>>(new Set());
 
-  // Derive assets and findings from embedded scan data
+  // Persist to localStorage whenever scans change
+  useEffect(() => {
+    saveLocalScans(scans);
+    scansRef.current = scans;
+  }, [scans]);
+
+  // ── Local mutation helpers ─────────────────────────────────────────────────
+  const upsertScan = useCallback((id: string, patch: Partial<ScanJob>) => {
+    setScans(prev => {
+      const idx = prev.findIndex(s => s.id === id);
+      if (idx === -1) return prev;
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], ...patch };
+      return updated;
+    });
+  }, []);
+
+  // ── Firestore sync (best-effort, completely optional) ──────────────────────
+  useEffect(() => {
+    let unsubScans: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      unsubScans?.();
+      if (!firebaseUser) return;
+
+      // Attempt to sync from Firestore — if it fails, we just use localStorage
+      try {
+        unsubScans = onSnapshot(
+          getScansQuery(),
+          (snapshot) => {
+            const remoteDocs = snapshot.docs
+              .map(d => deserializeScan({ id: d.id, ...d.data() }))
+              .filter((s: any) => !s._isReport);
+
+            // Merge: remote wins for fields it has, but keep local _assets/_findings if remote doesn't
+            setScans(prev => {
+              const merged = [...prev];
+              for (const remote of remoteDocs) {
+                const li = merged.findIndex(s => s.id === remote.id);
+                if (li === -1) {
+                  merged.push(remote);
+                } else {
+                  merged[li] = {
+                    ...remote,
+                    _assets: remote._assets?.length ? remote._assets : merged[li]._assets,
+                    _findings: remote._findings?.length ? remote._findings : merged[li]._findings,
+                  };
+                }
+              }
+              return merged;
+            });
+            setFirestoreOk(true);
+          },
+          (err) => {
+            // Firestore unavailable — silently continue with localStorage data
+            console.info("Firestore unavailable, using local storage:", err.code || err.message);
+            setFirestoreOk(false);
+          }
+        );
+      } catch (e) {
+        console.info("Firestore setup failed, using local storage:", e);
+        setFirestoreOk(false);
+      }
+    });
+
+    return () => { unsubAuth(); unsubScans?.(); };
+  }, []);
+
+  // ── Best-effort Firestore write ────────────────────────────────────────────
+  async function tryFirestore(fn: () => Promise<void>) {
+    try { await fn(); } catch { /* ignore — local state is already updated */ }
+  }
+
+  // ── Public actions ────────────────────────────────────────────────────────
+  const createScan = useCallback(async (
+    userId: string,
+    data: { name: string; target: string; scanType: string }
+  ): Promise<string> => {
+    const id = uuid();
+    const now = newLocalTimestamp();
+    const newScan: ScanJob = {
+      id,
+      name: data.name,
+      target: data.target,
+      scanType: data.scanType as any,
+      status: "queued",
+      progress: 0,
+      findings: 0,
+      duration: null,
+      phase: "Queued",
+      assetsDiscovered: 0,
+      _assets: [],
+      _findings: [],
+      createdBy: userId,
+      createdAt: now,
+      startedAt: null,
+      completedAt: null,
+    };
+    setScans(prev => [newScan, ...prev]);
+
+    // Best-effort Firestore
+    tryFirestore(async () => {
+      const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
+      const { db } = await import("../../firebase");
+      await addDoc(collection(db, "scans"), {
+        id, // store local id so we can correlate
+        name: data.name,
+        target: data.target,
+        scanType: data.scanType,
+        status: "queued",
+        progress: 0,
+        findings: 0,
+        duration: null,
+        phase: "Queued",
+        assetsDiscovered: 0,
+        _assets: [],
+        _findings: [],
+        createdBy: userId,
+        createdAt: serverTimestamp(),
+        startedAt: null,
+        completedAt: null,
+      });
+    });
+
+    return id;
+  }, []);
+
+  const deleteScan = useCallback(async (id: string) => {
+    setScans(prev => prev.filter(s => s.id !== id));
+    tryFirestore(async () => {
+      const { doc, deleteDoc } = await import("firebase/firestore");
+      const { db } = await import("../../firebase");
+      await deleteDoc(doc(db, "scans", id));
+    });
+  }, []);
+
+  const pauseScan = useCallback(async (scan: ScanJob) => {
+    const newStatus: ScanStatus = scan.status === "paused" ? "running" : "paused";
+    upsertScan(scan.id, { status: newStatus });
+    tryFirestore(async () => {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      const { db } = await import("../../firebase");
+      await updateDoc(doc(db, "scans", scan.id), { status: newStatus });
+    });
+  }, [upsertScan]);
+
+  // ── Scan engine (local, 2-second tick) ───────────────────────────────────
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      const current = scansRef.current;
+      const running = current.find(s => s.status === "running");
+
+      if (!running) {
+        const queued = [...current].reverse().find(s => s.status === "queued");
+        if (queued) {
+          const patch: Partial<ScanJob> = { status: "running", progress: 0, phase: "DNS Resolution", startedAt: newLocalTimestamp() };
+          upsertScan(queued.id, patch);
+          tryFirestore(async () => {
+            const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
+            const { db } = await import("../../firebase");
+            await updateDoc(doc(db, "scans", queued.id), { status: "running", progress: 0, phase: "DNS Resolution", startedAt: serverTimestamp() });
+          });
+        }
+        return;
+      }
+
+      const prev = running.progress;
+      const increment = 0.4 + Math.random() * 0.8;
+      const next = Math.min(100, prev + increment);
+      const phase = phaseForProgress(next);
+
+      // Trigger async subdomain discovery at DNS phase boundary
+      if (prev < 12 && next >= 12) _handleDnsPhase(running);
+
+      if (next >= 100) {
+        if (!completingRef.current.has(running.id)) {
+          completingRef.current.add(running.id);
+          _completeScan(running);
+        }
+        return;
+      }
+
+      const roundedNext = Math.round(next * 10) / 10;
+      upsertScan(running.id, { progress: roundedNext, phase, assetsDiscovered: running._assets?.length || 0 });
+      tryFirestore(async () => {
+        const { doc, updateDoc } = await import("firebase/firestore");
+        const { db } = await import("../../firebase");
+        await updateDoc(doc(db, "scans", running.id), { progress: roundedNext, phase, assetsDiscovered: running._assets?.length || 0 });
+      });
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [upsertScan]);
+
+  async function _handleDnsPhase(scan: ScanJob) {
+    try {
+      const subs = await discoverSubdomains(scan.target);
+      if (subs.length > 0) {
+        upsertScan(scan.id, { phase: "DNS Resolution" } as any);
+        // Store subdomains in scan for completion phase
+        setScans(prev => {
+          const idx = prev.findIndex(s => s.id === scan.id);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          (updated[idx] as any)._discoveredSubdomains = subs;
+          return updated;
+        });
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function _completeScan(scan: ScanJob) {
+    try {
+      const userId = auth.currentUser?.uid;
+      const subdomains: string[] = (scan as any)._discoveredSubdomains || [];
+
+      // VirusTotal if configured
+      let vtResult: { malicious: number; categories: string[] } | null = null;
+      if (userId) {
+        try {
+          const vtKey = await getIntegrationApiKey(userId, "virustotal");
+          if (vtKey) vtResult = await virusTotalLookup(scan.target, vtKey);
+        } catch { /* ignore */ }
+      }
+
+      // Build assets and findings purely in memory
+      const assets = buildEnrichedAssets(scan.id, scan.target, subdomains);
+      const findings = buildEnrichedFindings(assets);
+
+      // Append VirusTotal finding if applicable
+      const allFindings = [...findings];
+      if (vtResult && vtResult.malicious > 0 && assets.length > 0) {
+        allFindings.push({
+          id: uuid(),
+          scanId: scan.id,
+          assetId: assets[0].id,
+          assetName: assets[0].name,
+          title: `VirusTotal: ${vtResult.malicious} vendors flagged this domain`,
+          severity: vtResult.malicious > 5 ? "critical" : "high",
+          description: `VirusTotal detected ${vtResult.malicious} malicious/suspicious reports. Categories: ${vtResult.categories.slice(0, 3).join(", ")}.`,
+          category: "Threat Intelligence",
+          service: "https",
+          cvss: vtResult.malicious > 5 ? 8.5 : 6.5,
+          cve: null,
+          remediation: "Investigate flagged indicators. Review for malware. Check DNS for hijacking.",
+          references: [`https://www.virustotal.com/gui/domain/${scan.target}`],
+          createdAt: new Date().toISOString(),
+        } as any);
+      }
+
+      const durationMin = Math.floor(Math.random() * 5) + 6;
+      const durationSec = Math.floor(Math.random() * 60);
+
+      const completedPatch: Partial<ScanJob> = {
+        status: "completed",
+        progress: 100,
+        findings: allFindings.length,
+        duration: `${durationMin}m ${durationSec}s`,
+        phase: "Completed",
+        assetsDiscovered: assets.length,
+        _assets: assets,
+        _findings: allFindings,
+        completedAt: newLocalTimestamp(),
+      };
+
+      upsertScan(scan.id, completedPatch);
+
+      // Best-effort Firestore write of completed scan data
+      tryFirestore(async () => {
+        const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
+        const { db } = await import("../../firebase");
+        await updateDoc(doc(db, "scans", scan.id), {
+          status: "completed",
+          progress: 100,
+          findings: allFindings.length,
+          duration: completedPatch.duration,
+          phase: "Completed",
+          assetsDiscovered: assets.length,
+          _assets: assets,
+          _findings: allFindings,
+          completedAt: serverTimestamp(),
+        });
+      });
+
+      // Seed alert (best-effort)
+      tryFirestore(async () => {
+        const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
+        const { db } = await import("../../firebase");
+        const critCount = assets.filter(a => a.riskScore >= 75).length;
+        await addDoc(collection(db, "alerts"), {
+          type: critCount > 0 ? "critical" : "success",
+          title: critCount > 0
+            ? `${critCount} critical assets in scan of ${scan.target}`
+            : `Scan complete: ${allFindings.length} findings on ${scan.target}`,
+          asset: scan.target,
+          timestamp: serverTimestamp(),
+          read: false,
+        });
+      });
+    } catch (err) {
+      console.warn("Scan completion error:", err);
+      completingRef.current.delete(scan.id);
+      upsertScan(scan.id, { status: "failed", phase: "Failed" });
+    }
+  }
+
   const assets = useMemo<Asset[]>(() => {
     const all: Asset[] = [];
     scans.forEach(s => { if (s._assets) all.push(...s._assets); });
@@ -101,187 +460,21 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     return all;
   }, [scans]);
 
-  // ── Firestore listeners — only start when authenticated ───────────────────
-  useEffect(() => {
-    let unsubScans: (() => void) | null = null;
-
-    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      unsubScans?.();
-      if (!firebaseUser) {
-        setScans([]);
-        return;
-      }
-      unsubScans = onSnapshot(
-        getScansQuery(),
-        (snapshot) => {
-          const current = snapshot.docs
-            .map((d) => ({ id: d.id, ...d.data() } as ScanJob))
-            .filter(s => !(s as any)._isReport); // exclude report docs
-          scansRef.current = current;
-          setScans(current);
-          setFirestoreOk(true);
-        },
-        (err) => {
-          console.warn("Scan listener error:", err.message);
-          setFirestoreOk(false);
-        }
-      );
-    });
-
-    return () => {
-      unsubAuth();
-      unsubScans?.();
-    };
-  }, []);
-
-  // ── Scan queue processor — slow phase-based engine ────────────────────────
-  useEffect(() => {
-    const timer = window.setInterval(async () => {
-      try {
-        const currentScans = scansRef.current;
-        const runningScan = currentScans.find((s) => s.status === "running");
-
-        if (!runningScan) {
-          const nextQueued = [...currentScans].reverse().find((s) => s.status === "queued");
-          if (nextQueued) {
-            await updateScanStatus(nextQueued.id, "running", { progress: 0, phase: "DNS Resolution" });
-          }
-          return;
-        }
-
-        const current = runningScan.progress;
-        // 0.4–1.2% per 2-second tick → total ~3–8 minutes
-        const increment = 0.4 + Math.random() * 0.8;
-        const nextProgress = Math.min(100, current + increment);
-        const phase = phaseForProgress(nextProgress);
-
-        // DNS phase completes: fire subdomain discovery in background
-        if (current < 12 && nextProgress >= 12) {
-          _handleDnsPhase(runningScan);
-        }
-
-        if (nextProgress >= 100) {
-          if (!completingRef.current.has(runningScan.id)) {
-            completingRef.current.add(runningScan.id);
-            await _completeScan(runningScan);
-          }
-          return;
-        }
-
-        const assetsDiscovered = runningScan._assets?.length || 0;
-        await updateScanProgress(runningScan.id, Math.round(nextProgress * 10) / 10, phase, assetsDiscovered);
-      } catch (err) {
-        console.warn("Scan processor error:", err);
-      }
-    }, 2000);
-    return () => window.clearInterval(timer);
-  }, []); // intentionally empty — uses refs
-
-  async function _handleDnsPhase(scan: ScanJob) {
-    try {
-      const subdomains = await discoverSubdomains(scan.target);
-      if (subdomains.length > 0) {
-        const { updateDoc, doc } = await import("firebase/firestore");
-        const { db } = await import("../../firebase");
-        await updateDoc(doc(db, "scans", scan.id), { _discoveredSubdomains: subdomains });
-      }
-    } catch { /* ignore */ }
-  }
-
-  async function _completeScan(scan: ScanJob) {
-    try {
-      const userId = auth.currentUser?.uid;
-
-      // Recover subdomains from scan doc
-      let subdomains: string[] = [];
-      try {
-        const { getDoc, doc } = await import("firebase/firestore");
-        const { db } = await import("../../firebase");
-        const snap = await getDoc(doc(db, "scans", scan.id));
-        subdomains = snap.data()?._discoveredSubdomains || [];
-      } catch { /* ignore */ }
-
-      // VirusTotal lookup if key configured
-      let vtResult: { malicious: number; categories: string[] } | null = null;
-      if (userId) {
-        try {
-          const vtKey = await getIntegrationApiKey(userId, "virustotal");
-          if (vtKey) vtResult = await virusTotalLookup(scan.target, vtKey);
-        } catch { /* ignore */ }
-      }
-
-      // Build enriched assets — stored inside scan doc
-      const assetObjects = await createEnrichedAssetsForScan(scan.id, scan.target, subdomains);
-
-      // Build enriched findings — stored inside scan doc
-      const findingObjects = await createEnrichedFindingsForScan(scan.id, assetObjects);
-
-      // Optionally append VirusTotal finding
-      if (vtResult && vtResult.malicious > 0 && assetObjects.length > 0) {
-        const { updateDoc, doc } = await import("firebase/firestore");
-        const { db } = await import("../../firebase");
-        const { buildEnrichedFindings } = await import("../../firebase");
-        const vtFinding = {
-          id: Math.random().toString(36).slice(2),
-          scanId: scan.id,
-          assetId: assetObjects[0].id,
-          assetName: assetObjects[0].name,
-          title: `VirusTotal: ${vtResult.malicious} vendors flagged this domain`,
-          severity: vtResult.malicious > 5 ? "critical" as const : "high" as const,
-          description: `VirusTotal detected ${vtResult.malicious} malicious/suspicious reports. Categories: ${vtResult.categories.slice(0, 3).join(", ")}.`,
-          category: "Threat Intelligence",
-          service: "https",
-          cvss: vtResult.malicious > 5 ? 8.5 : 6.5,
-          cve: null,
-          remediation: "Investigate flagged indicators. Review for malware. Check DNS for hijacking.",
-          references: [`https://www.virustotal.com/gui/domain/${scan.target}`],
-          createdAt: new Date().toISOString(),
-        };
-        await updateDoc(doc(db, "scans", scan.id), {
-          _findings: [...findingObjects, vtFinding],
-        });
-      }
-
-      const totalFindings = findingObjects.length + (vtResult && vtResult.malicious > 0 ? 1 : 0);
-      const durationMin = Math.floor(Math.random() * 5) + 6;
-      const durationSec = Math.floor(Math.random() * 60);
-
-      await updateScanStatus(scan.id, "completed", {
-        progress: 100,
-        findings: totalFindings,
-        duration: `${durationMin}m ${durationSec}s`,
-        phase: "Completed",
-        assetsDiscovered: assetObjects.length,
-      });
-
-      // Seed an alert
-      const { seedAlert } = await import("../../firebase");
-      const criticalCount = assetObjects.filter(a => a.riskScore >= 75).length;
-      if (criticalCount > 0) {
-        await seedAlert("critical", `${criticalCount} critical assets in scan of ${scan.target}`, scan.target);
-      } else {
-        await seedAlert("success", `Scan complete: ${totalFindings} findings on ${scan.target}`, scan.target);
-      }
-    } catch (err) {
-      console.warn("Scan completion error:", err);
-      completingRef.current.delete(scan.id);
-      try {
-        await updateScanStatus(scan.id, "failed", { phase: "Failed" });
-      } catch { /* ignore */ }
-    }
-  }
-
   const stats = useMemo(() => ({
-    activeCount: scans.filter((s) => s.status === "running").length,
-    queuedCount:  scans.filter((s) => s.status === "queued").length,
-    completedCount: scans.filter((s) => s.status === "completed" || s.status === "failed").length,
-    findings: scans.reduce((sum, s) => sum + (s.findings || 0), 0),
-    hasScans: scans.length > 0,
-    isRunning: scans.some((s) => s.status === "running"),
+    activeCount:    scans.filter(s => s.status === "running").length,
+    queuedCount:    scans.filter(s => s.status === "queued").length,
+    completedCount: scans.filter(s => s.status === "completed" || s.status === "failed").length,
+    findings:       scans.reduce((sum, s) => sum + (s.findings || 0), 0),
+    hasScans:       scans.length > 0,
+    isRunning:      scans.some(s => s.status === "running"),
   }), [scans]);
 
   return (
-    <ScanContext.Provider value={{ scans, assets, findingsList, firestoreOk, ...stats }}>
+    <ScanContext.Provider value={{
+      scans, assets, findingsList, firestoreOk,
+      createScan, deleteScan, pauseScan,
+      ...stats,
+    }}>
       {children}
     </ScanContext.Provider>
   );

@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { useAuth, type Alert } from "./AuthProvider";
 import { useTheme } from "../contexts/ThemeContext";
-import { useScanContext } from "../contexts/ScanContext";
 import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -52,10 +51,7 @@ function alertColors(type: Alert["type"]) {
 
 export function RootLayout() {
   const navigate = useNavigate();
-  const { user, logout, alerts, unreadAlertCount, markAlertRead, markAllAlertsRead, firestoreError } = useAuth();
-  const { firestoreOk } = useScanContext();
-  const [rulesBannerDismissed, setRulesBannerDismissed] = useState(() => localStorage.getItem("rulesBannerDismissed") === "1");
-  const showRulesBanner = !firestoreOk && !rulesBannerDismissed;
+  const { user, logout, alerts, unreadAlertCount, markAlertRead, markAllAlertsRead } = useAuth();
   const { theme, setTheme, isDark } = useTheme();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -193,14 +189,6 @@ export function RootLayout() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3 ml-3 flex-shrink-0">
-            {/* Firestore warning badge */}
-            {firestoreError && (
-              <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs">
-                <AlertTriangle className="w-3 h-3" />
-                <span>Set Firestore rules</span>
-              </div>
-            )}
-
             {/* Theme toggle */}
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
@@ -237,9 +225,6 @@ export function RootLayout() {
                         <span style={{ color: "var(--accent-text)", backgroundColor: "var(--accent-muted)" }} className="px-1.5 py-0.5 rounded-full text-xs font-medium">
                           {unreadAlertCount} new
                         </span>
-                      )}
-                      {firestoreError && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 text-xs">demo</span>
                       )}
                     </div>
                     {unreadAlertCount > 0 && (
@@ -288,14 +273,6 @@ export function RootLayout() {
                     )}
                   </div>
 
-                  {firestoreError && (
-                    <div className="px-4 py-2 bg-orange-500/5 border-t border-orange-500/10">
-                      <p className="text-[10px] text-orange-400/80 text-center">
-                        Enable Firestore &amp; set rules to get live alerts
-                      </p>
-                    </div>
-                  )}
-
                   <div className={`px-4 py-3 border-t ${isDark ? "border-white/5" : "border-slate-100"}`}>
                     <button
                       onClick={() => { setNotifOpen(false); navigate("/monitoring"); }}
@@ -343,39 +320,6 @@ export function RootLayout() {
             )}
           </div>
         </header>
-
-        {/* Firestore Rules Setup Banner */}
-        {showRulesBanner && (
-          <div className="flex-shrink-0 bg-gradient-to-r from-orange-500/20 to-yellow-500/10 border-b border-orange-500/30 px-4 py-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-start gap-3 min-w-0">
-                <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-orange-300">Firestore Rules Update Required</div>
-                  <p className="text-xs text-orange-400/80 mt-0.5">
-                    The <code className="bg-black/30 px-1 rounded">assets</code>, <code className="bg-black/30 px-1 rounded">findings</code> and <code className="bg-black/30 px-1 rounded">reports</code> collections need security rules.
-                    Go to{" "}
-                    <a
-                      href={`https://console.firebase.google.com/project/${import.meta.env.VITE_FIREBASE_PROJECT_ID || "_"}/firestore/rules`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline text-orange-300 hover:text-orange-200"
-                    >
-                      Firebase Console → Firestore → Rules
-                    </a>{" "}
-                    and paste the updated <code className="bg-black/30 px-1 rounded">firestore.rules</code> file content, then click Publish.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => { localStorage.setItem("rulesBannerDismissed", "1"); setRulesBannerDismissed(true); }}
-                className="text-orange-400/60 hover:text-orange-400 transition-colors flex-shrink-0 p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Page Content */}
         <main className={`flex-1 overflow-auto ${isDark ? "bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f]" : "bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100"}`}>

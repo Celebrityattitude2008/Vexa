@@ -14,7 +14,6 @@ import {
   getScansQuery,
   buildEnrichedAssets,
   buildEnrichedFindings,
-  getIntegrationApiKey,
   type ScanJob,
   type Asset,
   type Finding,
@@ -129,13 +128,13 @@ async function virusTotalLookup(domain: string, apiKey: string): Promise<{ malic
   } catch { return null; }
 }
 
-// Shodan — host/port intelligence
-async function shodanDomainLookup(domain: string, apiKey: string): Promise<{ subdomains: string[]; ports: number[]; tags: string[] } | null> {
+// Shodan — via backend proxy (avoids browser CORS restrictions)
+async function shodanDomainLookup(domain: string): Promise<{ subdomains: string[]; ports: number[]; tags: string[] } | null> {
   try {
     const clean = cleanHost(domain);
     const base = clean.split(".").slice(-2).join(".");
-    const res = await fetch(`https://api.shodan.io/dns/domain/${base}?key=${apiKey}`, {
-      signal: AbortSignal.timeout(10000),
+    const res = await fetch(`/api/shodan/domain/${encodeURIComponent(base)}`, {
+      signal: AbortSignal.timeout(14000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -147,39 +146,44 @@ async function shodanDomainLookup(domain: string, apiKey: string): Promise<{ sub
   } catch { return null; }
 }
 
-// Censys — certificate & host data
-async function censysHostLookup(domain: string, apiKey: string): Promise<{ services: string[]; certs: string[] } | null> {
+// Censys — via backend proxy
+async function censysHostLookup(domain: string): Promise<{ services: string[]; certs: string[] } | null> {
   try {
     const clean = cleanHost(domain);
-    // Censys v2: key may be "censys_{id}_{secret}" or plain token — try Bearer first
-    const authHeader = apiKey.startsWith("censys_")
-      ? `Basic ${btoa(apiKey.replace(/^censys_/, ""))}` // strip prefix, use as id:secret
-      : `Bearer ${apiKey}`;
-    const res = await fetch(`https://search.censys.io/api/v2/certificates?q=parsed.names%3A${clean}&per_page=5`, {
-      headers: { "Authorization": authHeader, "Accept": "application/json" },
-      signal: AbortSignal.timeout(10000),
+    const res = await fetch(`/api/censys/certs?q=${encodeURIComponent(`parsed.names: ${clean}`)}`, {
+      signal: AbortSignal.timeout(14000),
     });
     if (!res.ok) return null;
     const data = await res.json();
     const hits = data?.result?.hits || [];
-    const services: string[] = [];
     const certs: string[] = hits.map((h: any) => h?.parsed?.subject_dn || "").filter(Boolean).slice(0, 3);
-    return { services, certs };
+    return { services: [], certs };
   } catch { return null; }
 }
 
-// SSL Labs (Qualys) — TLS/certificate grading (uses API key if provided, also works free)
-async function sslLabsLookup(domain: string, apiKey?: string): Promise<{ grade: string; hasIssues: boolean; protocol: string } | null> {
+// VirusTotal — via backend proxy
+async function virusTotalLookupProxy(domain: string): Promise<{ malicious: number; categories: string[] } | null> {
   try {
     const clean = cleanHost(domain);
-    // Only works for real domains (not IPs or internal hosts)
+    const res = await fetch(`/api/virustotal/domain/${encodeURIComponent(clean)}`, {
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const stats = data?.data?.attributes?.last_analysis_stats || {};
+    const cats = Object.values(data?.data?.attributes?.categories || {}) as string[];
+    return { malicious: (stats.malicious || 0) + (stats.suspicious || 0), categories: cats };
+  } catch { return null; }
+}
+
+// SSL Labs (Qualys) — via backend proxy
+async function sslLabsLookup(domain: string): Promise<{ grade: string; hasIssues: boolean; protocol: string } | null> {
+  try {
+    const clean = cleanHost(domain);
     if (!/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(clean)) return null;
-    const headers: Record<string, string> = { "Accept": "application/json" };
-    if (apiKey) headers["X-API-Key"] = apiKey;
-    const res = await fetch(
-      `https://api.ssllabs.com/api/v3/analyze?host=${clean}&fromCache=on&all=done&ignoreMismatch=on`,
-      { headers, signal: AbortSignal.timeout(12000) }
-    );
+    const res = await fetch(`/api/ssllabs/analyze?host=${encodeURIComponent(clean)}`, {
+      signal: AbortSignal.timeout(18000),
+    });
     if (!res.ok) return null;
     const data = await res.json();
     if (data.status === "ERROR" || !data.endpoints?.length) return null;
@@ -191,14 +195,6 @@ async function sslLabsLookup(domain: string, apiKey?: string): Promise<{ grade: 
     };
   } catch { return null; }
 }
-
-// Resolve env var API keys (VITE_ prefix makes them available in browser bundle)
-const ENV_KEYS = {
-  virustotal: import.meta.env.VITE_VIRUSTOTAL_API_KEY as string | undefined,
-  shodan:     import.meta.env.VITE_SHODAN_API_KEY as string | undefined,
-  censys:     import.meta.env.VITE_CENSYS_API_KEY as string | undefined,
-  qualys:     import.meta.env.VITE_QUALYSYS_API_KEY as string | undefined,
-};
 
 // ── Context types ────────────────────────────────────────────────────────────
 interface ScanContextValue {
@@ -445,10 +441,10 @@ export function ScanProvider({ children }: { children: ReactNode }) {
 
   async function _handleDnsPhase(scan: ScanJob) {
     try {
-      // Run HackerTarget + Shodan subdomain discovery in parallel
+      // Run HackerTarget + Shodan subdomain discovery in parallel (Shodan via proxy)
       const [htSubs, shodanData] = await Promise.all([
         discoverSubdomains(scan.target),
-        ENV_KEYS.shodan ? shodanDomainLookup(scan.target, ENV_KEYS.shodan) : Promise.resolve(null),
+        shodanDomainLookup(scan.target),
       ]);
 
       // Merge subdomains from both sources, deduplicate
@@ -473,17 +469,11 @@ export function ScanProvider({ children }: { children: ReactNode }) {
       const shodanPorts: number[] = (scan as any)._shodanPorts || [];
       const shodanTags: string[] = (scan as any)._shodanTags || [];
 
-      // Resolve VirusTotal key: env var first, then Firestore integration setting
-      let vtKey: string | null = ENV_KEYS.virustotal || null;
-      if (!vtKey && uid) {
-        try { vtKey = await getIntegrationApiKey(uid, "virustotal"); } catch { /* ignore */ }
-      }
-
-      // Run all threat-intel lookups in parallel
+      // Run all threat-intel lookups in parallel via backend proxy
       const [vtResult, censysResult, sslResult] = await Promise.all([
-        vtKey ? virusTotalLookup(scan.target, vtKey) : Promise.resolve(null),
-        ENV_KEYS.censys ? censysHostLookup(scan.target, ENV_KEYS.censys) : Promise.resolve(null),
-        sslLabsLookup(scan.target, ENV_KEYS.qualys),
+        virusTotalLookupProxy(scan.target),
+        censysHostLookup(scan.target),
+        sslLabsLookup(scan.target),
       ]);
 
       const assets = buildEnrichedAssets(scan.id, scan.target, subdomains);

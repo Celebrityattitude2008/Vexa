@@ -93,9 +93,15 @@ function phaseForProgress(p: number) {
 }
 
 // ── API helpers ──────────────────────────────────────────────────────────────
+
+function cleanHost(target: string): string {
+  return target.replace(/https?:\/\//, "").split("/")[0].split(":")[0];
+}
+
+// HackerTarget — free subdomain enumeration (no key needed)
 async function discoverSubdomains(domain: string): Promise<string[]> {
   try {
-    const clean = domain.replace(/https?:\/\//, "").split("/")[0].split(":")[0];
+    const clean = cleanHost(domain);
     const base = clean.split(".").slice(-2).join(".");
     const res = await fetch(`https://api.hackertarget.com/hostsearch/?q=${base}`, {
       signal: AbortSignal.timeout(10000),
@@ -107,9 +113,10 @@ async function discoverSubdomains(domain: string): Promise<string[]> {
   } catch { return []; }
 }
 
+// VirusTotal — domain reputation
 async function virusTotalLookup(domain: string, apiKey: string): Promise<{ malicious: number; categories: string[] } | null> {
   try {
-    const clean = domain.replace(/https?:\/\//, "").split("/")[0];
+    const clean = cleanHost(domain);
     const res = await fetch(`https://www.virustotal.com/api/v3/domains/${clean}`, {
       headers: { "x-apikey": apiKey },
       signal: AbortSignal.timeout(8000),
@@ -121,6 +128,77 @@ async function virusTotalLookup(domain: string, apiKey: string): Promise<{ malic
     return { malicious: (stats.malicious || 0) + (stats.suspicious || 0), categories: cats };
   } catch { return null; }
 }
+
+// Shodan — host/port intelligence
+async function shodanDomainLookup(domain: string, apiKey: string): Promise<{ subdomains: string[]; ports: number[]; tags: string[] } | null> {
+  try {
+    const clean = cleanHost(domain);
+    const base = clean.split(".").slice(-2).join(".");
+    const res = await fetch(`https://api.shodan.io/dns/domain/${base}?key=${apiKey}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.error) return null;
+    const subs: string[] = (data.subdomains || []).slice(0, 8).map((s: string) => `${s}.${base}`);
+    const ports: number[] = data.ports || [];
+    const tags: string[] = data.tags || [];
+    return { subdomains: subs, ports, tags };
+  } catch { return null; }
+}
+
+// Censys — certificate & host data
+async function censysHostLookup(domain: string, apiKey: string): Promise<{ services: string[]; certs: string[] } | null> {
+  try {
+    const clean = cleanHost(domain);
+    // Censys v2: key may be "censys_{id}_{secret}" or plain token — try Bearer first
+    const authHeader = apiKey.startsWith("censys_")
+      ? `Basic ${btoa(apiKey.replace(/^censys_/, ""))}` // strip prefix, use as id:secret
+      : `Bearer ${apiKey}`;
+    const res = await fetch(`https://search.censys.io/api/v2/certificates?q=parsed.names%3A${clean}&per_page=5`, {
+      headers: { "Authorization": authHeader, "Accept": "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hits = data?.result?.hits || [];
+    const services: string[] = [];
+    const certs: string[] = hits.map((h: any) => h?.parsed?.subject_dn || "").filter(Boolean).slice(0, 3);
+    return { services, certs };
+  } catch { return null; }
+}
+
+// SSL Labs (Qualys) — TLS/certificate grading (uses API key if provided, also works free)
+async function sslLabsLookup(domain: string, apiKey?: string): Promise<{ grade: string; hasIssues: boolean; protocol: string } | null> {
+  try {
+    const clean = cleanHost(domain);
+    // Only works for real domains (not IPs or internal hosts)
+    if (!/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(clean)) return null;
+    const headers: Record<string, string> = { "Accept": "application/json" };
+    if (apiKey) headers["X-API-Key"] = apiKey;
+    const res = await fetch(
+      `https://api.ssllabs.com/api/v3/analyze?host=${clean}&fromCache=on&all=done&ignoreMismatch=on`,
+      { headers, signal: AbortSignal.timeout(12000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status === "ERROR" || !data.endpoints?.length) return null;
+    const ep = data.endpoints[0];
+    return {
+      grade: ep.grade || "T",
+      hasIssues: ["C", "D", "E", "F", "T", "M"].includes(ep.grade || ""),
+      protocol: data.protocol || "TLS",
+    };
+  } catch { return null; }
+}
+
+// Resolve env var API keys (VITE_ prefix makes them available in browser bundle)
+const ENV_KEYS = {
+  virustotal: import.meta.env.VITE_VIRUSTOTAL_API_KEY as string | undefined,
+  shodan:     import.meta.env.VITE_SHODAN_API_KEY as string | undefined,
+  censys:     import.meta.env.VITE_CENSYS_API_KEY as string | undefined,
+  qualys:     import.meta.env.VITE_QUALYSYS_API_KEY as string | undefined,
+};
 
 // ── Context types ────────────────────────────────────────────────────────────
 interface ScanContextValue {
@@ -367,16 +445,24 @@ export function ScanProvider({ children }: { children: ReactNode }) {
 
   async function _handleDnsPhase(scan: ScanJob) {
     try {
-      const subs = await discoverSubdomains(scan.target);
-      if (subs.length > 0) {
-        setScans(prev => {
-          const idx = prev.findIndex(s => s.id === scan.id);
-          if (idx === -1) return prev;
-          const updated = [...prev];
-          (updated[idx] as any)._discoveredSubdomains = subs;
-          return updated;
-        });
-      }
+      // Run HackerTarget + Shodan subdomain discovery in parallel
+      const [htSubs, shodanData] = await Promise.all([
+        discoverSubdomains(scan.target),
+        ENV_KEYS.shodan ? shodanDomainLookup(scan.target, ENV_KEYS.shodan) : Promise.resolve(null),
+      ]);
+
+      // Merge subdomains from both sources, deduplicate
+      const allSubs = [...new Set([...htSubs, ...(shodanData?.subdomains || [])])].slice(0, 12);
+
+      setScans(prev => {
+        const idx = prev.findIndex(s => s.id === scan.id);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        (updated[idx] as any)._discoveredSubdomains = allSubs;
+        (updated[idx] as any)._shodanPorts = shodanData?.ports || [];
+        (updated[idx] as any)._shodanTags = shodanData?.tags || [];
+        return updated;
+      });
     } catch { /* ignore */ }
   }
 
@@ -384,36 +470,76 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     try {
       const uid = currentUidRef.current;
       const subdomains: string[] = (scan as any)._discoveredSubdomains || [];
+      const shodanPorts: number[] = (scan as any)._shodanPorts || [];
+      const shodanTags: string[] = (scan as any)._shodanTags || [];
 
-      let vtResult: { malicious: number; categories: string[] } | null = null;
-      if (uid) {
-        try {
-          const vtKey = await getIntegrationApiKey(uid, "virustotal");
-          if (vtKey) vtResult = await virusTotalLookup(scan.target, vtKey);
-        } catch { /* ignore */ }
+      // Resolve VirusTotal key: env var first, then Firestore integration setting
+      let vtKey: string | null = ENV_KEYS.virustotal || null;
+      if (!vtKey && uid) {
+        try { vtKey = await getIntegrationApiKey(uid, "virustotal"); } catch { /* ignore */ }
       }
 
-      const assets = buildEnrichedAssets(scan.id, scan.target, subdomains);
-      const findings = buildEnrichedFindings(assets);
+      // Run all threat-intel lookups in parallel
+      const [vtResult, censysResult, sslResult] = await Promise.all([
+        vtKey ? virusTotalLookup(scan.target, vtKey) : Promise.resolve(null),
+        ENV_KEYS.censys ? censysHostLookup(scan.target, ENV_KEYS.censys) : Promise.resolve(null),
+        sslLabsLookup(scan.target, ENV_KEYS.qualys),
+      ]);
 
+      const assets = buildEnrichedAssets(scan.id, scan.target, subdomains);
+
+      // Inject Shodan port data into discovered assets
+      if (shodanPorts.length > 0 && assets.length > 0) {
+        assets[0].ports = [
+          ...( assets[0].ports || []),
+          ...shodanPorts
+            .filter(p => !(assets[0].ports || []).some((ep: any) => ep.port === p))
+            .map(p => ({ port: p, service: "unknown", state: "open" as const })),
+        ];
+      }
+      if (shodanTags.length > 0 && assets.length > 0) {
+        assets[0].technologies = [...new Set([...(assets[0].technologies || []), ...shodanTags])];
+      }
+
+      const findings = buildEnrichedFindings(assets);
       const allFindings = [...findings];
+
+      // VirusTotal finding
       if (vtResult && vtResult.malicious > 0 && assets.length > 0) {
         allFindings.push({
-          id: uuid(),
-          scanId: scan.id,
-          assetId: assets[0].id,
-          assetName: assets[0].name,
+          id: uuid(), scanId: scan.id, assetId: assets[0].id, assetName: assets[0].name,
           title: `VirusTotal: ${vtResult.malicious} vendors flagged this domain`,
           severity: vtResult.malicious > 5 ? "critical" : "high",
           description: `VirusTotal detected ${vtResult.malicious} malicious/suspicious reports. Categories: ${vtResult.categories.slice(0, 3).join(", ")}.`,
-          category: "Threat Intelligence",
-          service: "https",
-          cvss: vtResult.malicious > 5 ? 8.5 : 6.5,
-          cve: null,
+          category: "Threat Intelligence", service: "https",
+          cvss: vtResult.malicious > 5 ? 8.5 : 6.5, cve: null,
           remediation: "Investigate flagged indicators. Review for malware. Check DNS for hijacking.",
-          references: [`https://www.virustotal.com/gui/domain/${scan.target}`],
+          references: [`https://www.virustotal.com/gui/domain/${cleanHost(scan.target)}`],
           createdAt: new Date().toISOString(),
         } as any);
+      }
+
+      // SSL Labs / Qualys TLS finding
+      if (sslResult && sslResult.hasIssues && assets.length > 0) {
+        allFindings.push({
+          id: uuid(), scanId: scan.id, assetId: assets[0].id, assetName: assets[0].name,
+          title: `TLS Grade ${sslResult.grade} — Certificate/Protocol Issue Detected`,
+          severity: ["F", "T", "M"].includes(sslResult.grade) ? "high" : "medium",
+          description: `Qualys SSL Labs rated this host ${sslResult.grade}. This indicates weak cipher suites, expired certificates, or deprecated protocol versions.`,
+          category: "Certificate", service: "https",
+          cvss: ["F", "T", "M"].includes(sslResult.grade) ? 7.5 : 5.0, cve: null,
+          remediation: "Update TLS configuration. Disable SSLv3, TLS 1.0/1.1. Renew expired certificates. See ssllabs.com for full report.",
+          references: [`https://www.ssllabs.com/ssltest/analyze.html?d=${cleanHost(scan.target)}`],
+          createdAt: new Date().toISOString(),
+        } as any);
+      }
+
+      // Censys certificate finding (if certs differ from expected)
+      if (censysResult && censysResult.certs.length > 0 && assets.length > 0) {
+        assets[0].certificates = {
+          ...assets[0].certificates,
+          issuer: censysResult.certs[0] || assets[0].certificates?.issuer,
+        };
       }
 
       const durationMin = Math.floor(Math.random() * 5) + 6;

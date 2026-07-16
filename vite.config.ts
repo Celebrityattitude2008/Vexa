@@ -48,5 +48,10 @@ export default defineConfig({
         secure: false,
       },
     },
+    headers: {
+      // Allow Google/GitHub OAuth popups to communicate back to the opener
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+    },
   },
 })

@@ -11,6 +11,12 @@ const CENSYS_KEY  = process.env.VITE_CENSYS_API_KEY;
 const QUALYS_KEY  = process.env.VITE_QUALYSYS_API_KEY;
 const VT_KEY      = process.env.VITE_VIRUSTOTAL_API_KEY;
 
+// COOP header: allows Google/GitHub OAuth popups to post back to the opener
+app.use((_req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+  next();
+});
 app.use(cors({ origin: true }));
 app.use(express.json());
 

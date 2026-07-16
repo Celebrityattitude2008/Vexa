@@ -23,6 +23,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuth, type Alert } from "./AuthProvider";
+import { MailCheck } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -52,7 +53,15 @@ function alertColors(type: Alert["type"]) {
 
 export function RootLayout() {
   const navigate = useNavigate();
-  const { user, logout, alerts, unreadAlertCount, markAlertRead, markAllAlertsRead } = useAuth();
+  const { user, emailVerified, resendVerification, logout, alerts, unreadAlertCount, markAlertRead, markAllAlertsRead } = useAuth();
+  const [verifySent, setVerifySent] = useState(false);
+
+  const handleResendVerification = async () => {
+    try {
+      await resendVerification();
+      setVerifySent(true);
+    } catch { /* ignore */ }
+  };
   const { theme, setTheme, isDark } = useTheme();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -190,13 +199,22 @@ export function RootLayout() {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Search */}
-            <div className="flex-1 max-w-2xl min-w-0">
+            {/* Mobile logo (shown only when sidebar is hidden) */}
+            <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+              <div className="w-7 h-7 rounded-md overflow-hidden">
+                <img src="/logo-icon.jpg" alt="Vigil" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-sm font-semibold">Vigil</span>
+            </div>
+
+            {/* Search — hidden on xs, visible sm+ */}
+            <div className="hidden sm:block flex-1 max-w-2xl min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search assets, domains..."
+                  aria-label="Search assets and domains"
                   className={`w-full ${isDark ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200"} border rounded-lg pl-10 pr-4 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)]`}
                 />
               </div>
@@ -362,6 +380,23 @@ export function RootLayout() {
             )}
           </div>
         </header>
+
+        {/* Email verification banner */}
+        {user && !emailVerified && (
+          <div className="relative z-10 flex items-center justify-between gap-3 bg-amber-500/10 border-b border-amber-500/30 px-4 py-2.5 text-sm flex-wrap">
+            <div className="flex items-center gap-2 text-amber-300">
+              <MailCheck className="w-4 h-4 flex-shrink-0" />
+              <span>Check your inbox — verify your email before starting scans or exporting reports.</span>
+            </div>
+            <button
+              onClick={handleResendVerification}
+              disabled={verifySent}
+              className="text-xs font-medium text-amber-400 hover:text-amber-200 underline underline-offset-2 disabled:opacity-50 flex-shrink-0"
+            >
+              {verifySent ? "Email sent ✓" : "Resend email"}
+            </button>
+          </div>
+        )}
 
         {/* Page Content */}
         <main className={`flex-1 overflow-auto ${isDark ? "bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f]" : "bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100"}`}>

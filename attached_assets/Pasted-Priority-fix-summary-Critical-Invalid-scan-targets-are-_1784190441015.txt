@@ -1,0 +1,71 @@
+Priority fix summary
+Critical
+Invalid scan targets are accepted and queued
+Where: Dashboard → Monitoring → New Scan
+Evidence: qa-audit/screenshots/edge-invalid-target-after-submit.png
+Problem: The app accepts not a url as a scan target and starts a scan.
+Fix: Add frontend and backend validation for URLs, domains, IPs, and CIDR ranges. Reject invalid values before creating a scan.
+Suggested error: “Enter a valid URL, domain, IP address, or CIDR range.”
+Major
+Email sign-up allows immediate dashboard access without verification
+
+Where: Authentication
+Evidence: qa-audit/screenshots/auth-07-post-signup-wait.png
+Fix: Require email verification before sensitive actions such as starting scans, exporting reports, creating API keys, inviting users, or changing workspace settings.
+Required scan fields are not semantically required
+
+Where: Monitoring → New Scan modal
+Evidence: qa-audit/screenshots/edge-new-scan-modal.png
+Fix: Add required, proper labels, aria-invalid, inline error messages, and focus management after failed submit.
+Mobile dashboard navigation/layout needs work
+
+Where: Authenticated dashboard on mobile
+Evidence: qa-audit/screenshots/mobile-dash-overview.png
+Fix: Add a mobile header, a labeled menu button, a drawer-style nav, full-width content cards, and spacing tuned for phone/tablet breakpoints.
+Account/profile menu and logout are unclear
+
+Where: Dashboard shell
+Evidence: qa-audit/screenshots/edge-account-menu.png
+Fix: Make the account button open a clear menu with Profile, Workspace, Settings, and Sign out. Support mouse, keyboard, escape key, and focus management.
+Icon-only buttons lack accessible names
+
+Where: Public header and dashboard shell
+Fix: Add useful labels such as aria-label="Open navigation menu", aria-label="Open account menu", aria-label="Open notifications", and aria-label="Close dialog".
+Google OAuth reports Cross-Origin-Opener-Policy console errors
+
+Where: Login → Continue with Google
+Evidence: qa-audit/screenshots/oauth-Google-popup.png
+Fix: Review COOP/COEP headers and the OAuth popup configuration. Test the full Google sign-in return flow in a real browser.
+Minor
+Landing H1 text is concatenated
+
+Fix: Ensure natural spacing: Discover Every Vulnerability Before Attackers Do.
+Contact Sales routes to login
+
+Fix: Route to a real contact form, scheduling page, sales email, or explain why login is required.
+Toast messages persist too long across dashboard navigation
+
+Fix: Auto-dismiss success toasts and clear auth-related messages on route change.
+Duplicate button labels create ambiguity
+
+Fix: Give duplicate buttons unique accessible names, for example New scan from header and New scan from empty state.
+Dashboard overview lacks a clear H1
+
+Fix: Add one page-level heading such as Overview, Security Overview, or Vigil Dashboard.
+Privacy/contact emails look placeholder-like
+
+Fix: Replace old Vexa emails with real monitored Vigil addresses before launch.
+Recommended implementation order
+Phase 1 — Launch blockers
+Fix target validation in the New Scan flow.
+Add backend validation so invalid targets cannot be submitted through direct API calls.
+Add regression tests for invalid and valid scan targets.
+Phase 2 — Trust and account safety
+Add email verification or restrict unverified accounts.
+Confirm Google OAuth works without popup/security-header errors.
+Make account and logout controls obvious.
+Phase 3 — Accessibility and UX polish
+Add accessible names to icon-only controls.
+Improve required field semantics and inline errors.
+Fix mobile dashboard layout.
+Fix duplicate button labels, H1 spacing, and toast persistence

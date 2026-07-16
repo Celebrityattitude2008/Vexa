@@ -51,7 +51,7 @@ function scanAge(scan: ScanJob): string {
 }
 
 export function Monitoring() {
-  const { user } = useAuth();
+  const { user, emailVerified } = useAuth();
   const { scans, createScan, deleteScan, pauseScan } = useScanContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -92,6 +92,10 @@ export function Monitoring() {
     }
     setFieldErrors({});
     if (!user) { toast.error("You must be signed in."); return; }
+    if (!emailVerified) {
+      toast.error("Verify your email before starting a scan. Check your inbox for the verification link.");
+      return;
+    }
     setSubmitting(true);
     try {
       await createScan(user.uid, scanForm);
@@ -155,6 +159,8 @@ export function Monitoring() {
             onClick={() => setShowNewScanModal(true)}
             style={{ backgroundColor: "var(--accent-muted)", borderColor: "var(--accent-border)", color: "var(--accent-text)" }}
             className="px-3 md:px-4 py-2 rounded-lg border flex items-center gap-2 transition-all text-sm hover:opacity-90"
+            aria-label="New Scan — open form"
+            title={!emailVerified ? "Verify your email to start scans" : undefined}
           >
             <Plus className="w-4 h-4" />
             <span>New Scan</span>
@@ -201,7 +207,7 @@ export function Monitoring() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[
           { label: "Active Scans",     value: statCounts.running,   color: "text-green-400",  icon: Activity,       dot: true },
           { label: "Completed Today",  value: statCounts.completed, color: "text-green-400",  icon: CheckCircle2,   dot: false },

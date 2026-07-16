@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { sendEmailVerification } from "firebase/auth";
 import {
   auth,
   loginWithEmailPassword,
@@ -41,11 +42,13 @@ export interface Alert {
 interface AuthContextValue {
   user: FirestoreUser | null;
   loading: boolean;
+  emailVerified: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithGithub: () => Promise<void>;
   logout: () => Promise<void>;
+  resendVerification: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
   refreshToken: () => Promise<string | null>;
   notificationSettings: NotificationSettings;
@@ -62,6 +65,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirestoreUser | null>(null);
+  const [emailVerified, setEmailVerified] = useState(true); // true until we know otherwise
   const [loading, setLoading] = useState(true);
   const [firestoreError, setFirestoreError] = useState(false);
   const [notificationSettings, setNotificationSettings] =
@@ -81,6 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
 
       if (firebaseUser) {
+        // Track email verification status from Firebase Auth (not Firestore)
+        setEmailVerified(firebaseUser.emailVerified);
+
         try {
           const profile = await getUserProfile(firebaseUser.uid);
           const currentUser =
@@ -106,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscribeToAlerts();
       } else {
         setUser(null);
+        setEmailVerified(true);
         setNotificationSettings(defaultNotificationSettings);
         setRawAlerts([]);
         seenAlertIdsRef.current = new Set();
@@ -220,6 +228,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => logoutFirebase();
 
+  const resendVerification = async () => {
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      await sendEmailVerification(auth.currentUser);
+    }
+  };
+
   const getIdToken = async () => auth.currentUser?.getIdToken() ?? null;
 
   const refreshToken = async () =>
@@ -239,11 +253,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      emailVerified,
       login,
       signup,
       signInWithGoogle: signInWithGoogleProvider,
       signInWithGithub: signInWithGithubProvider,
       logout,
+      resendVerification,
       getIdToken,
       refreshToken,
       notificationSettings,
@@ -256,7 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firestoreError,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, loading, notificationSettings, alerts, unreadAlertCount, firestoreError]
+    [user, loading, emailVerified, notificationSettings, alerts, unreadAlertCount, firestoreError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

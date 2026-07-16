@@ -5,6 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithPopup,
   GoogleAuthProvider,
   GithubAuthProvider,
@@ -242,7 +243,10 @@ export async function loginWithEmailPassword(email: string, password: string) {
 }
 
 export async function signUpWithEmailPassword(email: string, password: string) {
-  return createUserWithEmailAndPassword(auth, email, password);
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  // Send verification email — non-fatal if it fails (e.g. emulator)
+  try { await sendEmailVerification(cred.user); } catch { /* ignore */ }
+  return cred;
 }
 
 export async function signInWithGoogle() {

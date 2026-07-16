@@ -58,6 +58,20 @@ export function Monitoring() {
   const [showNewScanModal, setShowNewScanModal] = useState(false);
   const [scanForm, setScanForm] = useState({ name: "", target: "", scanType: "full" });
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; target?: string }>({});
+
+  function isValidTarget(raw: string): boolean {
+    const t = raw.trim();
+    // URL
+    try { new URL(t); return true; } catch {}
+    // CIDR
+    if (/^(\d{1,3}\.){3}\d{1,3}\/(\d|[1-2]\d|3[0-2])$/.test(t)) return true;
+    // IPv4
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(t)) return true;
+    // Domain / hostname
+    if (/^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(t)) return true;
+    return false;
+  }
 
   const filtered = scans.filter(s => statusFilter === "all" || s.status === statusFilter);
   const activeScans   = filtered.filter(s => s.status === "running");
@@ -65,16 +79,25 @@ export function Monitoring() {
   const completedScans = filtered.filter(s => s.status === "completed" || s.status === "failed");
 
   const handleStartScan = async () => {
-    if (!scanForm.name.trim() || !scanForm.target.trim()) {
-      toast.error("Please fill in all required fields.");
+    const errors: { name?: string; target?: string } = {};
+    if (!scanForm.name.trim()) errors.name = "Scan name is required.";
+    if (!scanForm.target.trim()) {
+      errors.target = "Enter a valid URL, domain, IP address, or CIDR range.";
+    } else if (!isValidTarget(scanForm.target)) {
+      errors.target = "Enter a valid URL, domain, IP address, or CIDR range.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+    setFieldErrors({});
     if (!user) { toast.error("You must be signed in."); return; }
     setSubmitting(true);
     try {
       await createScan(user.uid, scanForm);
       setShowNewScanModal(false);
       setScanForm({ name: "", target: "", scanType: "full" });
+      setFieldErrors({});
       toast.success("Scan queued", { description: `"${scanForm.name}" has been added to the queue.` });
     } catch (err: any) {
       toast.error("Failed to create scan: " + (err?.message || "Unknown error"));
@@ -214,6 +237,7 @@ export function Monitoring() {
               onClick={() => setShowNewScanModal(true)}
               style={{ backgroundColor: "var(--accent-muted)", borderColor: "var(--accent-border)", color: "var(--accent-text)" }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all hover:opacity-90"
+              aria-label="New Scan — start from empty state"
             >
               <Plus className="w-4 h-4" />
               New Scan
@@ -327,10 +351,11 @@ export function Monitoring() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl bg-[#0d0d18] border border-white/10 p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">New Scan</h3>
+              <h3 className="text-lg font-semibold" id="new-scan-title">New Scan</h3>
               <button
-                onClick={() => setShowNewScanModal(false)}
+                onClick={() => { setShowNewScanModal(false); setFieldErrors({}); }}
                 className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 transition-all"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -338,28 +363,46 @@ export function Monitoring() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5 text-gray-300">
-                  Scan Name <span className="text-red-400">*</span>
+                <label htmlFor="scan-name" className="block text-sm font-medium mb-1.5 text-gray-300">
+                  Scan Name <span className="text-red-400" aria-hidden="true">*</span>
                 </label>
                 <input
+                  id="scan-name"
                   type="text"
                   placeholder="e.g. Full Infrastructure Scan"
                   value={scanForm.name}
-                  onChange={e => setScanForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
+                  onChange={e => { setScanForm(f => ({ ...f, name: e.target.value })); setFieldErrors(fe => ({ ...fe, name: undefined })); }}
+                  required
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors.name}
+                  aria-describedby={fieldErrors.name ? "scan-name-error" : undefined}
+                  className={`w-full bg-black/40 border rounded-lg px-4 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100 ${fieldErrors.name ? "border-red-500/60" : "border-white/10"}`}
                 />
+                {fieldErrors.name && (
+                  <p id="scan-name-error" role="alert" className="mt-1.5 text-xs text-red-400">{fieldErrors.name}</p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5 text-gray-300">
-                  Target <span className="text-red-400">*</span>
+                <label htmlFor="scan-target" className="block text-sm font-medium mb-1.5 text-gray-300">
+                  Target <span className="text-red-400" aria-hidden="true">*</span>
                 </label>
                 <input
+                  id="scan-target"
                   type="text"
                   placeholder="e.g. example.com or 192.168.1.0/24"
                   value={scanForm.target}
-                  onChange={e => setScanForm(f => ({ ...f, target: e.target.value }))}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
+                  onChange={e => { setScanForm(f => ({ ...f, target: e.target.value })); setFieldErrors(fe => ({ ...fe, target: undefined })); }}
+                  required
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors.target}
+                  aria-describedby={fieldErrors.target ? "scan-target-error" : "scan-target-hint"}
+                  className={`w-full bg-black/40 border rounded-lg px-4 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100 ${fieldErrors.target ? "border-red-500/60" : "border-white/10"}`}
                 />
+                {fieldErrors.target ? (
+                  <p id="scan-target-error" role="alert" className="mt-1.5 text-xs text-red-400">{fieldErrors.target}</p>
+                ) : (
+                  <p id="scan-target-hint" className="mt-1.5 text-xs text-gray-500">URL, domain, IP address, or CIDR range</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5 text-gray-300">Scan Type</label>

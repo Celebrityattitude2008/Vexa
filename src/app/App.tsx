@@ -16,6 +16,7 @@ export default function App() {
           </ErrorBoundary>
           <Toaster
             position="top-right"
+            duration={3000}
             toastOptions={{
               style: {
                 background: 'var(--background, #0d0d18)',

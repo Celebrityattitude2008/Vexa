@@ -192,6 +192,8 @@ export function Landing() {
               <button
                 className="md:hidden p-2 text-gray-300 hover:text-white"
                 onClick={() => setMenuOpen(v => !v)}
+                aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={menuOpen}
               >
                 {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -531,16 +533,25 @@ export function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  to="/login"
-                  className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all ${
-                    plan.highlight
-                      ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 shadow-lg shadow-cyan-500/20"
-                      : "bg-[#1a1a28] border border-[#2a2a3e] text-gray-200 hover:bg-[#1e1e2f] hover:text-white"
-                  }`}
-                >
-                  {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
-                </Link>
+                {plan.price === "Custom" ? (
+                  <a
+                    href="mailto:support@vigil.com.ng"
+                    className="block text-center py-3 rounded-xl font-semibold text-sm transition-all bg-[#1a1a28] border border-[#2a2a3e] text-gray-200 hover:bg-[#1e1e2f] hover:text-white"
+                  >
+                    Contact Us
+                  </a>
+                ) : (
+                  <Link
+                    to="/login"
+                    className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all ${
+                      plan.highlight
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 shadow-lg shadow-cyan-500/20"
+                        : "bg-[#1a1a28] border border-[#2a2a3e] text-gray-200 hover:bg-[#1e1e2f] hover:text-white"
+                    }`}
+                  >
+                    Get Started
+                  </Link>
+                )}
               </div>
             ))}
           </div>

@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from "react-router";
+import { Outlet, NavLink, useNavigate, Link } from "react-router";
 import {
   LayoutDashboard,
   Database,
@@ -20,6 +20,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  User,
 } from "lucide-react";
 import { useAuth, type Alert } from "./AuthProvider";
 import { useTheme } from "../contexts/ThemeContext";
@@ -56,16 +57,29 @@ export function RootLayout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { setNotifOpen(false); setUserMenuOpen(false); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const navItems = [
@@ -171,6 +185,7 @@ export function RootLayout() {
             <button
               className="md:hidden p-2 rounded-lg hover:bg-white/5 text-gray-400 transition-all flex-shrink-0"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -193,7 +208,7 @@ export function RootLayout() {
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
               className="p-2 hover:bg-white/5 rounded-lg transition-all text-gray-400 hover:text-gray-200"
-              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -201,8 +216,10 @@ export function RootLayout() {
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
-                onClick={() => setNotifOpen((prev) => !prev)}
+                onClick={() => { setNotifOpen((prev) => !prev); setUserMenuOpen(false); }}
                 className="relative p-2 hover:bg-white/5 rounded-lg transition-all"
+                aria-label="Open notifications"
+                aria-expanded={notifOpen}
               >
                 <Bell className="w-5 h-5 text-gray-400" />
                 {unreadAlertCount > 0 && (
@@ -288,8 +305,13 @@ export function RootLayout() {
 
             {/* User */}
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className={`flex items-center gap-2 rounded-lg border ${isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-white"} px-2 py-1.5`}>
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => { setUserMenuOpen(prev => !prev); setNotifOpen(false); }}
+                  aria-label="Open account menu"
+                  aria-expanded={userMenuOpen}
+                  className={`flex items-center gap-2 rounded-lg border ${isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-slate-200 bg-white hover:bg-slate-50"} px-2 py-1.5 transition-all`}
+                >
                   <div
                     style={{ backgroundColor: "var(--accent-primary)" }}
                     className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-black flex-shrink-0"
@@ -300,14 +322,34 @@ export function RootLayout() {
                     <div className="text-xs font-medium truncate max-w-[120px]">{user.email}</div>
                     <div className="text-[10px] text-gray-400">{user.role}</div>
                   </div>
-                </div>
-                <button
-                  onClick={logout}
-                  title="Sign out"
-                  className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
+                  <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${userMenuOpen ? "rotate-180" : ""}`} />
                 </button>
+
+                {userMenuOpen && (
+                  <div className={`absolute right-0 mt-2 w-52 rounded-xl ${isDark ? "bg-[#0d0d18]" : "bg-white"} border ${isDark ? "border-white/10" : "border-slate-200"} shadow-2xl z-50 overflow-hidden`}>
+                    <div className={`px-4 py-3 border-b ${isDark ? "border-white/5" : "border-slate-100"}`}>
+                      <p className="text-xs font-semibold truncate">{user.email}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{user.role || "Member"}</p>
+                    </div>
+                    <div className="py-1">
+                      <Link
+                        to="/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-2.5 text-sm ${isDark ? "hover:bg-white/5 text-gray-300" : "hover:bg-slate-50 text-slate-700"} transition-colors`}
+                      >
+                        <User className="w-4 h-4" />
+                        Profile & Settings
+                      </Link>
+                      <button
+                        onClick={() => { setUserMenuOpen(false); logout(); }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 ${isDark ? "hover:bg-red-500/10" : "hover:bg-red-50"} transition-colors`}
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <button

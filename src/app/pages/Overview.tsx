@@ -49,6 +49,7 @@ export function Overview() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <h1 className="sr-only">Vigil Dashboard — Overview</h1>
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {metricCards.map((metric, idx) => (

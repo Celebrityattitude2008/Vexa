@@ -23,6 +23,7 @@ import {
   collection,
   onSnapshot,
   query,
+  where,
   orderBy,
   limit,
   type Timestamp,
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Use defaults if Firestore is inaccessible
         }
 
-        subscribeToAlerts();
+        subscribeToAlerts(uid);
       } else {
         setUser(null);
         setEmailVerified(true);
@@ -132,13 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function subscribeToAlerts() {
+  function subscribeToAlerts(uid: string) {
     alertsUnsubRef.current?.();
     isFirstSnapshotRef.current = true;
 
     try {
       const q = query(
         collection(db, "alerts"),
+        where("createdBy", "==", uid),
         orderBy("timestamp", "desc"),
         limit(20)
       );

@@ -158,7 +158,7 @@ export function Overview() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <h3 className="text-lg font-semibold">Vexa AI Insight</h3>
+                <h3 className="text-lg font-semibold">Vigil AI Insight</h3>
                 <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${hasScans ? "bg-green-500/20 text-green-400" : "bg-purple-500/20 text-purple-400"}`}>
                   {isRunning ? "Scanning…" : hasScans ? "Analysis Ready" : "Waiting for data"}
                 </div>

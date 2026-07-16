@@ -223,7 +223,7 @@ export function Settings() {
                   <Plus className="w-4 h-4" /> Generate Key
                 </button>
               </div>
-              <p className="text-sm text-gray-400">API keys allow external services to authenticate with Vexa Security Platform.</p>
+              <p className="text-sm text-gray-400">API keys allow external services to authenticate with Vigil Security Platform.</p>
               <div className="p-4 rounded-lg bg-black/40 border border-white/10">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -253,7 +253,7 @@ export function Settings() {
           {active === "integrations" && (
             <div className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-6 space-y-4">
               <h2 className="text-lg font-semibold">Integrations</h2>
-              <p className="text-sm text-gray-400">Connect Vexa with your existing security and operations stack. API keys are stored securely in Firestore.</p>
+              <p className="text-sm text-gray-400">Connect Vigil with your existing security and operations stack. API keys are stored securely in Firestore.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {INTEGRATIONS.map((intg) => {
                   const connected = connectedTypes.has(intg.type);

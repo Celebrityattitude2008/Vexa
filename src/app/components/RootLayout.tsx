@@ -85,9 +85,9 @@ export function RootLayout() {
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-              <img src="/logo.png" alt="Vexa" className="w-full h-full object-cover" />
+              <img src="/logo-icon.jpg" alt="Vigil" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl font-semibold">Vexa</span>
+            <span className="text-xl font-semibold">Vigil</span>
           </div>
         </div>
 

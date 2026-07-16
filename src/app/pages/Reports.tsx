@@ -336,7 +336,7 @@ function buildReportContent(report: Report & { id: string }, findings: any[], as
   const critical = findings.filter(f => f.severity === "critical");
   const high = findings.filter(f => f.severity === "high");
   const lines = [
-    `VEXA SECURITY PLATFORM — ${report.template.toUpperCase()}`,
+    `VIGIL SECURITY PLATFORM — ${report.template.toUpperCase()}`,
     `Generated: ${now}`,
     `Period: ${report.period}`,
     "=".repeat(60),

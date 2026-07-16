@@ -16,7 +16,7 @@ export function Login() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#07070d]">
-        <img src="/logo.png" alt="Vexa" className="w-12 h-12 rounded-2xl animate-pulse" />
+        <img src="/logo-icon.jpg" alt="Vigil" className="w-12 h-12 rounded-2xl animate-pulse" />
       </div>
     );
   }
@@ -48,7 +48,7 @@ export function Login() {
     try {
       if (isNewUser) {
         await signup(email, password);
-        toast.success("Account created successfully! Welcome to Vexa.");
+        toast.success("Account created successfully! Welcome to Vigil.");
       } else {
         await login(email, password);
         toast.success("Signed in successfully. Welcome back!");
@@ -69,7 +69,7 @@ export function Login() {
     try {
       if (provider === "google") await signInWithGoogle();
       else await signInWithGithub();
-      toast.success("Signed in successfully. Welcome to Vexa!");
+      toast.success("Signed in successfully. Welcome to Vigil!");
       navigate("/");
     } catch (err) {
       const msg = getFirebaseErrorMessage(err);
@@ -85,7 +85,7 @@ export function Login() {
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-black/60 p-8 backdrop-blur-xl shadow-xl">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl overflow-hidden">
-            <img src="/logo.png" alt="Vexa Security" className="w-full h-full object-cover" />
+            <img src="/logo-icon.jpg" alt="Vigil Security" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-semibold text-gray-100">
             {isNewUser ? "Create account" : "Sign in"}

@@ -46,10 +46,10 @@ function applyTheme(theme: ThemeMode) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    try { return (localStorage.getItem("vexa-theme") as ThemeMode) || "dark"; } catch { return "dark"; }
+    try { return (localStorage.getItem("vigil-theme") as ThemeMode) || "dark"; } catch { return "dark"; }
   });
   const [accentColor, setAccentColorState] = useState<AccentColor>(() => {
-    try { return (localStorage.getItem("vexa-accent") as AccentColor) || "cyan"; } catch { return "cyan"; }
+    try { return (localStorage.getItem("vigil-accent") as AccentColor) || "cyan"; } catch { return "cyan"; }
   });
 
   useEffect(() => {
@@ -58,13 +58,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTheme = (t: ThemeMode) => {
-    try { localStorage.setItem("vexa-theme", t); } catch {}
+    try { localStorage.setItem("vigil-theme", t); } catch {}
     setThemeState(t);
     applyTheme(t);
   };
 
   const setAccentColor = (c: AccentColor) => {
-    try { localStorage.setItem("vexa-accent", c); } catch {}
+    try { localStorage.setItem("vigil-accent", c); } catch {}
     setAccentColorState(c);
     applyAccent(c);
   };

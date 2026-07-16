@@ -40,7 +40,7 @@ export function PrivacyPolicy() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-sm text-white">VEXA</span>
+            <span className="font-bold text-sm text-white">VIGIL</span>
           </div>
           <Link to="/login" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-semibold">
             Sign In
@@ -57,7 +57,7 @@ export function PrivacyPolicy() {
           </div>
           <h1 className="text-4xl font-extrabold mb-4 text-white">Privacy Policy</h1>
           <p className="text-gray-300 text-lg mb-6 leading-relaxed">
-            Vexa Security Platform is committed to protecting your privacy and the security of your data.
+            Vigil Security Platform is committed to protecting your privacy and the security of your data.
             This policy explains what we collect, how we use it, and your rights.
           </p>
           <div className="flex flex-wrap gap-4 text-xs text-gray-400">
@@ -97,12 +97,12 @@ export function PrivacyPolicy() {
             {/* 1. Overview */}
             <Section id="overview" icon={Shield} title="1. Overview">
               <p>
-                This Privacy Policy describes how Vexa Security Platform ("Vexa," "we," "us," or "our") collects,
+                This Privacy Policy describes how Vigil Security Platform ("Vigil," "we," "us," or "our") collects,
                 uses, and protects information that you ("user," "you," or "your") provide when using our
-                attack surface management platform, accessible at our website and web application.
+                security monitoring platform, accessible at our website and web application.
               </p>
               <p>
-                By accessing or using Vexa, you agree to the terms of this Privacy Policy. If you do not agree
+                By accessing or using Vigil, you agree to the terms of this Privacy Policy. If you do not agree
                 with these terms, please do not use our platform.
               </p>
               <div className="rounded-lg bg-cyan-500/8 border border-cyan-500/25 p-4 mt-2">
@@ -177,7 +177,7 @@ export function PrivacyPolicy() {
             {/* 4. Data Storage & Security */}
             <Section id="data-storage" icon={Lock} title="4. Data Storage & Security">
               <p>
-                Vexa uses Google Firebase (Firestore) for cloud data storage and Firebase Authentication
+                Vigil uses Google Firebase (Firestore) for cloud data storage and Firebase Authentication
                 for identity management. All data is stored on Google Cloud Platform infrastructure with
                 the following security measures:
               </p>
@@ -205,7 +205,7 @@ export function PrivacyPolicy() {
 
             {/* 5. Third-Party Services */}
             <Section id="third-parties" icon={Globe} title="5. Third-Party Services">
-              <p>Vexa integrates with the following third-party services. Each has its own privacy policy:</p>
+              <p>Vigil integrates with the following third-party services. Each has its own privacy policy:</p>
               <div className="space-y-3 mt-3">
                 {[
                   {
@@ -255,7 +255,7 @@ export function PrivacyPolicy() {
             {/* 6. Scan Data & Privacy */}
             <Section id="scan-data" icon={Shield} title="6. Scan Data & Privacy">
               <p>
-                Vexa operates as a security tool that scans infrastructure you own or have explicit
+                Vigil operates as a security tool that scans infrastructure you own or have explicit
                 written permission to test. This is a core requirement of our Terms of Service.
               </p>
               <p className="font-semibold text-gray-100 pt-2">User Data Isolation</p>
@@ -266,11 +266,11 @@ export function PrivacyPolicy() {
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li><strong className="text-gray-100">Database level:</strong> Firestore security rules require authentication and match the requesting user's UID to the document owner</li>
-                <li><strong className="text-gray-100">Browser level:</strong> localStorage data is keyed by user ID (<code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-xs text-gray-200 border border-[#2a2a3e]">vexa_scans_v4_{"{userId}"}</code>) so different users of the same browser never see each other's data</li>
+                <li><strong className="text-gray-100">Browser level:</strong> localStorage data is keyed by user ID (<code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-xs text-gray-200 border border-[#2a2a3e]">vigil_scans_v4_{"{userId}"}</code>) so different users of the same browser never see each other's data</li>
                 <li><strong className="text-gray-100">Application level:</strong> All data queries include user ID filters preventing cross-user data access</li>
               </ul>
               <p className="pt-2">
-                <strong className="text-gray-100">No employee access:</strong> Vexa employees and administrators do not routinely access
+                <strong className="text-gray-100">No employee access:</strong> Vigil employees and administrators do not routinely access
                 your specific scan results. Access to user scan data would only occur in response to a
                 lawful legal request, with notification to you where legally permissible.
               </p>
@@ -298,7 +298,7 @@ export function PrivacyPolicy() {
               </div>
               <p className="mt-3">
                 To exercise any of these rights, contact us at{" "}
-                <a href="mailto:privacy@vexa.security" className="text-cyan-400 hover:text-cyan-300 font-medium">privacy@vexa.security</a>.
+                <a href="mailto:support@vigil.com.ng" className="text-cyan-400 hover:text-cyan-300 font-medium">support@vigil.com.ng</a>.
                 We will respond within 30 days.
               </p>
             </Section>
@@ -335,7 +335,7 @@ export function PrivacyPolicy() {
 
             {/* 9. Cookies & Local Storage */}
             <Section id="cookies" icon={Database} title="9. Cookies & Local Storage">
-              <p>Vexa uses the following browser storage mechanisms:</p>
+              <p>Vigil uses the following browser storage mechanisms:</p>
               <div className="space-y-3 mt-3">
                 {[
                   {
@@ -347,7 +347,7 @@ export function PrivacyPolicy() {
                   {
                     name: "Scan Data Cache",
                     type: "localStorage",
-                    purpose: "Stores your personal scan results locally for performance. Key is user-ID-scoped: vexa_scans_v4_{userId}. Only your own data is stored.",
+                    purpose: "Stores your personal scan results locally for performance. Key is user-ID-scoped: vigil_scans_v4_{userId}. Only your own data is stored.",
                     required: true,
                   },
                   {
@@ -385,10 +385,10 @@ export function PrivacyPolicy() {
             {/* 10. Children's Privacy */}
             <Section id="children" icon={Users} title="10. Children's Privacy">
               <p>
-                Vexa is not intended for use by individuals under the age of 16 (or 13 in the United States).
+                Vigil is not intended for use by individuals under the age of 16 (or 13 in the United States).
                 We do not knowingly collect personal information from children. If you believe we have
                 inadvertently collected such information, please contact us immediately at{" "}
-                <a href="mailto:privacy@vexa.security" className="text-cyan-400 hover:text-cyan-300 font-medium">privacy@vexa.security</a> and
+                <a href="mailto:support@vigil.com.ng" className="text-cyan-400 hover:text-cyan-300 font-medium">support@vigil.com.ng</a> and
                 we will delete it promptly.
               </p>
             </Section>
@@ -396,8 +396,8 @@ export function PrivacyPolicy() {
             {/* 11. International Transfers */}
             <Section id="international" icon={Globe} title="11. International Data Transfers">
               <p>
-                Vexa is operated from and data is primarily stored in the United States via Google Cloud
-                Platform. If you access Vexa from outside the United States, your data may be transferred to
+                Vigil is operated from and data is primarily stored in the United States via Google Cloud
+                Platform. If you access Vigil from outside the United States, your data may be transferred to
                 and processed in the United States or other countries where Google operates data centers.
               </p>
               <p>
@@ -411,7 +411,7 @@ export function PrivacyPolicy() {
             <Section id="changes" icon={RefreshCw} title="12. Changes to This Policy">
               <p>
                 We may update this Privacy Policy from time to time to reflect changes in our practices,
-                technology, legal requirements, or other factors. When we make material changes, we will:
+                technology, legal requirements, or other factors. When we make material changes, Vigil will:
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>Update the "Last Updated" date at the top of this page</li>
@@ -419,7 +419,7 @@ export function PrivacyPolicy() {
                 <li>Send an email notification to your registered email address for significant changes</li>
               </ul>
               <p>
-                Your continued use of Vexa after we post changes to this policy will constitute your
+                Your continued use of Vigil after we post changes to this policy will constitute your
                 acknowledgment of the changes and your consent to abide by the updated policy.
               </p>
             </Section>
@@ -438,7 +438,7 @@ export function PrivacyPolicy() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 font-medium mb-0.5">Privacy Inquiries</p>
-                      <a href="mailto:privacy@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">privacy@vexa.security</a>
+                      <a href="mailto:support@vigil.com.ng" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">support@vigil.com.ng</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -447,7 +447,7 @@ export function PrivacyPolicy() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 font-medium mb-0.5">Security Issues</p>
-                      <a href="mailto:security@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">security@vexa.security</a>
+                      <a href="mailto:support@vigil.com.ng" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">support@vigil.com.ng</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -456,7 +456,7 @@ export function PrivacyPolicy() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 font-medium mb-0.5">Data Protection Officer</p>
-                      <a href="mailto:dpo@vexa.security" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">dpo@vexa.security</a>
+                      <a href="mailto:support@vigil.com.ng" className="text-sm text-cyan-400 hover:text-cyan-300 font-semibold">support@vigil.com.ng</a>
                     </div>
                   </div>
                 </div>
@@ -469,7 +469,7 @@ export function PrivacyPolicy() {
 
             <div className="border-t border-[#1a1a28] pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="text-sm text-gray-400">
-                © {new Date().getFullYear()} Vexa Security Platform. All rights reserved.
+                © {new Date().getFullYear()} Vigil Security Platform. All rights reserved.
               </p>
               <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-semibold">
                 <ArrowLeft className="w-4 h-4" />

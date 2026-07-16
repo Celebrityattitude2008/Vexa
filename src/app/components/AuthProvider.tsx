@@ -270,11 +270,11 @@ export function useAuth() {
 
 // ── Demo alerts (shown when Firestore rules block reads) ──────────────────────
 const DEMO_ALERTS: Omit<Alert, "effectivelyRead">[] = [
-  { id: "d1", type: "critical", title: "Critical exposure detected", asset: "api.production.vexa.io", timestamp: null },
-  { id: "d2", type: "warning",  title: "Certificate expiring soon",  asset: "admin.vexa.io",          timestamp: null },
-  { id: "d3", type: "success",  title: "New asset discovered",       asset: "cdn.assets.vexa.io",     timestamp: null },
+  { id: "d1", type: "critical", title: "Critical exposure detected", asset: "api.production.vigil.com.ng", timestamp: null },
+  { id: "d2", type: "warning",  title: "Certificate expiring soon",  asset: "admin.vigil.com.ng",          timestamp: null },
+  { id: "d3", type: "success",  title: "New asset discovered",       asset: "cdn.assets.vigil.com.ng",     timestamp: null },
   { id: "d4", type: "info",     title: "Scan completed",             asset: "172 assets scanned",     timestamp: null },
-  { id: "d5", type: "critical", title: "Misconfiguration found",     asset: "storage.s3.vexa.io",     timestamp: null },
-  { id: "d6", type: "success",  title: "Risk resolved",              asset: "auth.vexa.io",            timestamp: null },
+  { id: "d5", type: "critical", title: "Misconfiguration found",     asset: "storage.s3.vigil.com.ng",     timestamp: null },
+  { id: "d6", type: "success",  title: "Risk resolved",              asset: "auth.vigil.com.ng",            timestamp: null },
 ];
 

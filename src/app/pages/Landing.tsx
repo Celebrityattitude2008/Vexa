@@ -1,10 +1,10 @@
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
 import {
-  Shield, Zap, Eye, Globe, Lock, Activity, ChevronRight,
+  Eye, Zap, Globe, Lock, Activity, ChevronRight,
   CheckCircle2, AlertTriangle, Server, Cloud, Database,
   ArrowRight, Users, BarChart3, Search, Bell,
-  Cpu, Network, FileText, Menu, X,
+  Cpu, Network, FileText, Menu, X, Shield,
 } from "lucide-react";
 
 const STATS = [
@@ -69,7 +69,7 @@ const HOW_IT_WORKS = [
   {
     step: "01",
     title: "Connect Your Target",
-    desc: "Enter a domain, IP range, or cloud environment. Vexa's scan engine immediately begins DNS resolution and asset enumeration.",
+    desc: "Enter a domain, IP range, or cloud environment. Vigil's scan engine immediately begins DNS resolution and asset enumeration.",
     icon: Globe,
   },
   {
@@ -159,11 +159,10 @@ export function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+                <img src="/logo-icon.jpg" alt="Vigil" className="w-full h-full object-cover" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-white">VEXA</span>
-              <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-medium">Security</span>
+              <span className="text-xl font-bold tracking-tight text-white">VIGIL</span>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
@@ -246,23 +245,20 @@ export function Landing() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-medium mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            Enterprise Attack Surface Management
+            Scan. Monitor. Detect
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-white">
-            Discover Every
+            Vigil keeps watch
             <br />
             <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Vulnerability
+              over your web app.
             </span>
-            <br />
-            Before Attackers Do
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Vexa is a continuous attack surface management platform that automatically
-            discovers, maps, and assesses vulnerabilities across your entire infrastructure —
-            subdomains, APIs, cloud assets, ports, CVEs, and certificates.
+            Continuous monitoring for uptime, user flows, scans, and risk signals —
+            so you can fix issues before they affect users.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -270,14 +266,14 @@ export function Landing() {
               to="/login"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-lg hover:opacity-90 transition-all shadow-2xl shadow-cyan-500/25 w-full sm:w-auto justify-center"
             >
-              Start Free Scan
+              Start Monitoring
               <ArrowRight className="w-5 h-5" />
             </Link>
             <a
               href="#features"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#111118] border border-[#2a2a3e] text-gray-200 font-semibold text-lg hover:bg-[#16161f] hover:border-[#363650] transition-all w-full sm:w-auto justify-center"
             >
-              See Features
+              See How Vigil Works
               <ChevronRight className="w-5 h-5" />
             </a>
           </div>
@@ -307,7 +303,7 @@ export function Landing() {
                 <div className="w-3 h-3 rounded-full bg-green-500/70" />
               </div>
               <div className="flex-1 bg-[#111118] rounded-md px-3 py-1 text-xs text-gray-400 font-mono text-center border border-[#1e1e2e]">
-                app.vexa.security — Attack Surface Dashboard
+                app.vigil.com.ng — Security Dashboard
               </div>
             </div>
             {/* Mock dashboard content */}
@@ -362,7 +358,7 @@ export function Landing() {
             <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Platform Capabilities</span>
             <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4 text-white">Everything You Need to Secure<br className="hidden sm:inline" /> Your Attack Surface</h2>
             <p className="text-gray-300 max-w-2xl mx-auto text-base">
-              From continuous asset discovery to AI-powered risk scoring, Vexa covers the
+              From continuous asset discovery to AI-powered risk scoring, Vigil covers the
               entire vulnerability lifecycle in a single platform.
             </p>
           </div>
@@ -398,7 +394,7 @@ export function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Process</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4 text-white">How Vexa Works</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4 text-white">How Vigil Works</h2>
             <p className="text-gray-300 max-w-xl mx-auto text-base">
               From target entry to prioritized remediation in minutes — fully automated.
             </p>
@@ -564,7 +560,7 @@ export function Landing() {
                 Ready to Secure Your Infrastructure?
               </h2>
               <p className="text-gray-300 text-lg mb-8 max-w-xl mx-auto">
-                Join thousands of security teams using Vexa to stay ahead of attackers.
+                Join thousands of security teams using Vigil to stay ahead of attackers.
                 Start your first scan in under 60 seconds.
               </p>
               <Link
@@ -585,14 +581,13 @@ export function Landing() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 sm:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                  <Shield className="w-4 h-4 text-white" />
+                <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0">
+                  <img src="/logo-icon.jpg" alt="Vigil" className="w-full h-full object-cover" />
                 </div>
-                <span className="font-bold text-white">VEXA</span>
+                <span className="font-bold text-white">VIGIL</span>
               </div>
               <p className="text-xs text-gray-400 leading-relaxed max-w-xs">
-                Enterprise attack surface management platform for continuous vulnerability
-                discovery and remediation.
+                Continuous monitoring for your web app. Scan. Monitor. Detect.
               </p>
             </div>
             <div>
@@ -625,7 +620,7 @@ export function Landing() {
           </div>
           <div className="border-t border-[#1a1a28] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-gray-400">
-              © {new Date().getFullYear()} Vexa Security Platform. All rights reserved.
+              © {new Date().getFullYear()} Vigil Security Platform. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <Link to="/privacy" className="hover:text-gray-200 transition-colors">Privacy Policy</Link>

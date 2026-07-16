@@ -26,7 +26,7 @@ import { auth } from "../../firebase";
 // Each user's scans are stored under their own key so users never see each
 // other's data even when they share the same browser.
 function lsKey(uid: string) {
-  return `vexa_scans_v4_${uid}`;
+  return `vigil_scans_v4_${uid}`;
 }
 
 function makeFakeTimestamp(isoStr: string | null | undefined) {

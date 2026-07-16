@@ -105,7 +105,7 @@ export function AssetDetail() {
             <Sparkles className="w-6 h-6 text-purple-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold mb-2">Vexa AI Risk Analysis</h3>
+            <h3 className="text-lg font-semibold mb-2">Vigil AI Risk Analysis</h3>
             {assetFindings.length === 0 ? (
               <p className="text-gray-400 text-sm">No scan findings for this asset yet. Run a scan from Monitoring to generate findings.</p>
             ) : (

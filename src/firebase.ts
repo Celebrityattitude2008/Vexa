@@ -21,6 +21,7 @@ import {
   where,
   query,
   orderBy,
+  limit,
   updateDoc,
   serverTimestamp,
   getDocs,
@@ -111,6 +112,8 @@ export interface Finding {
 export type ScanStatus = "queued" | "running" | "completed" | "failed" | "paused";
 export type ScanType = "full" | "port" | "subdomain" | "cloud" | "cert" | "vulnerability" | "api";
 
+export type ScheduleInterval = "none" | "daily" | "weekly" | "monthly";
+
 export interface ScanJob {
   id: string;
   name: string;
@@ -122,6 +125,8 @@ export interface ScanJob {
   duration: string | null;
   phase?: string;
   assetsDiscovered?: number;
+  scheduleInterval?: ScheduleInterval;
+  nextRunAt?: Timestamp | null;
   createdBy: string;
   createdAt: Timestamp | null;
   startedAt: Timestamp | null;
@@ -235,6 +240,78 @@ export async function getIntegrationApiKey(userId: string, type: string): Promis
 
 export function getIntegrationsQuery(_userId: string) {
   return query(collection(db, "integrations"), orderBy("connectedAt", "desc"));
+}
+
+// ── Risk History ──────────────────────────────────────────────────────────────
+export interface RiskSnapshot {
+  userId: string;
+  date: string; // YYYY-MM-DD
+  score: number;
+  scanId: string;
+  target: string;
+  totalFindings: number;
+  criticalFindings: number;
+  recordedAt: Timestamp | null;
+}
+
+export async function writeRiskSnapshot(userId: string, snap: Omit<RiskSnapshot, "userId" | "recordedAt">) {
+  const ref = doc(db, "riskHistory", `${userId}_${snap.date}_${snap.scanId.slice(0, 8)}`);
+  await setDoc(ref, { ...snap, userId, recordedAt: serverTimestamp() }, { merge: true });
+}
+
+export function getRiskHistoryQuery(userId: string) {
+  return query(
+    collection(db, "riskHistory"),
+    where("userId", "==", userId),
+    orderBy("date", "desc"),
+    limit(30)
+  );
+}
+
+// ── Team Invites ──────────────────────────────────────────────────────────────
+export type InviteStatus = "pending" | "accepted" | "declined";
+
+export interface TeamInvite {
+  id?: string;
+  invitedBy: string;
+  inviterName: string;
+  inviterEmail: string;
+  invitedEmail: string;
+  role: string;
+  status: InviteStatus;
+  createdAt: Timestamp | null;
+}
+
+export async function sendTeamInvite(
+  invitedBy: string, inviterName: string, inviterEmail: string,
+  invitedEmail: string, role: string
+) {
+  await addDoc(collection(db, "invites"), {
+    invitedBy, inviterName, inviterEmail,
+    invitedEmail: invitedEmail.toLowerCase(),
+    role, status: "pending" as InviteStatus,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export function getMyInvitesSentQuery(userId: string) {
+  return query(
+    collection(db, "invites"),
+    where("invitedBy", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+}
+
+export function getPendingInvitesByEmailQuery(email: string) {
+  return query(
+    collection(db, "invites"),
+    where("invitedEmail", "==", email.toLowerCase()),
+    where("status", "==", "pending")
+  );
+}
+
+export async function updateInviteStatus(inviteId: string, status: InviteStatus) {
+  await updateDoc(doc(db, "invites", inviteId), { status });
 }
 
 // ── Auth helpers ───────────────────────────────────────────────────────────────

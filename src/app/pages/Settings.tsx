@@ -1,22 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  User, Bell, Shield, Key, Zap, Palette,
-  Save, X, Copy, Plus, Trash2, Eye, EyeOff, Check,
+  User, Bell, Shield, Key, Zap, Palette, Users,
+  Save, X, Copy, Plus, Trash2, Eye, EyeOff, Check, Mail, UserPlus, Clock,
 } from "lucide-react";
+import { onSnapshot } from "firebase/firestore";
 import { useAuth } from "../components/AuthProvider";
 import { useTheme, ACCENT_CONFIGS, type AccentColor } from "../contexts/ThemeContext";
-import { saveIntegration } from "../../firebase";
+import {
+  saveIntegration, sendTeamInvite, getMyInvitesSentQuery,
+  updateInviteStatus, type TeamInvite,
+} from "../../firebase";
 import { toast } from "sonner";
 
-type Section = "account" | "notifications" | "security" | "api-keys" | "integrations" | "appearance";
+type Section = "account" | "notifications" | "security" | "api-keys" | "integrations" | "appearance" | "team";
 
 const NAV: { id: Section; label: string; icon: typeof User }[] = [
-  { id: "account", label: "Account", icon: User },
+  { id: "account",       label: "Account",       icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "security", label: "Security", icon: Shield },
-  { id: "api-keys", label: "API Keys", icon: Key },
-  { id: "integrations", label: "Integrations", icon: Zap },
-  { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "security",      label: "Security",      icon: Shield },
+  { id: "api-keys",      label: "API Keys",      icon: Key },
+  { id: "integrations",  label: "Integrations",  icon: Zap },
+  { id: "appearance",    label: "Appearance",    icon: Palette },
+  { id: "team",          label: "Team",          icon: Users },
 ];
 
 const INTEGRATIONS = [
@@ -39,6 +44,54 @@ export function Settings() {
   const [connectValue, setConnectValue] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [connectedTypes, setConnectedTypes] = useState<Set<string>>(new Set());
+
+  // ── Team state ─────────────────────────────────────────────────────────────
+  const [invites, setInvites] = useState<(TeamInvite & { id: string })[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("Viewer");
+  const [inviting, setInviting] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = onSnapshot(getMyInvitesSentQuery(user.uid), (snap) => {
+      setInvites(snap.docs.map(d => ({ id: d.id, ...d.data() } as TeamInvite & { id: string })));
+    }, () => {});
+    return unsub;
+  }, [user?.uid]);
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim()) { toast.error("Enter an email address."); return; }
+    if (!user) return;
+    setInviting(true);
+    try {
+      await sendTeamInvite(
+        user.uid,
+        user.displayName || user.email || "Team Owner",
+        user.email || "",
+        inviteEmail.trim(),
+        inviteRole,
+      );
+      setInviteEmail("");
+      toast.success(`Invite sent to ${inviteEmail.trim()}`);
+    } catch (err: any) {
+      toast.error("Failed to send invite: " + (err?.message || "Unknown error"));
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRevokeInvite = async (inviteId: string) => {
+    setRevokingId(inviteId);
+    try {
+      await updateInviteStatus(inviteId, "declined");
+      toast.success("Invite revoked");
+    } catch {
+      toast.error("Failed to revoke invite");
+    } finally {
+      setRevokingId(null);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -347,6 +400,110 @@ export function Settings() {
                   <span style={accentStyle.text} className="text-sm self-center">Accent text</span>
                   <div style={accentStyle.muted} className="px-2 py-1 rounded text-xs self-center">Badge</div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Team ── */}
+          {active === "team" && (
+            <div className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-6 space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold">Team Management</h2>
+                <p className="text-sm text-gray-400 mt-1">Invite teammates to collaborate on scans and findings.</p>
+              </div>
+
+              {/* Invite form */}
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-200">
+                  <UserPlus className="w-4 h-4 text-cyan-400" />
+                  Invite a Teammate
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium mb-1.5 text-gray-400">Email Address</label>
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleSendInvite()}
+                      placeholder="teammate@company.com"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100 placeholder:text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5 text-gray-400">Role</label>
+                    <select
+                      value={inviteRole}
+                      onChange={e => setInviteRole(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
+                    >
+                      <option value="Viewer">Viewer</option>
+                      <option value="Analyst">Analyst</option>
+                      <option value="Administrator">Administrator</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSendInvite}
+                  disabled={inviting || !inviteEmail.trim()}
+                  style={{ ...accentStyle.muted, ...accentStyle.border, ...accentStyle.text }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all disabled:opacity-60 hover:opacity-90"
+                >
+                  {inviting
+                    ? <div style={{ borderTopColor: "var(--accent-primary)" }} className="w-4 h-4 border-2 border-gray-600 rounded-full animate-spin" />
+                    : <Mail className="w-4 h-4" />}
+                  {inviting ? "Sending…" : "Send Invite"}
+                </button>
+              </div>
+
+              {/* Invite list */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">Sent Invites</h3>
+                {invites.length === 0 ? (
+                  <div className="rounded-xl border border-white/10 p-8 text-center">
+                    <Users className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No invites sent yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {invites.map(inv => (
+                      <div key={inv.id} className="flex items-center justify-between gap-3 rounded-lg bg-black/20 border border-white/10 px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-gray-300">
+                            {inv.invitedEmail[0].toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">{inv.invitedEmail}</div>
+                            <div className="text-xs text-gray-500">{inv.role}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            inv.status === "accepted"  ? "bg-green-500/20 text-green-400" :
+                            inv.status === "declined"  ? "bg-red-500/20 text-red-400" :
+                            "bg-yellow-500/20 text-yellow-400"
+                          }`}>
+                            {inv.status === "pending"
+                              ? <span className="flex items-center gap-1"><Clock className="w-3 h-3 inline" /> Pending</span>
+                              : inv.status}
+                          </span>
+                          {inv.status === "pending" && (
+                            <button
+                              onClick={() => handleRevokeInvite(inv.id)}
+                              disabled={revokingId === inv.id}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-all disabled:opacity-50"
+                              title="Revoke invite"
+                            >
+                              {revokingId === inv.id
+                                ? <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
+                                : <X className="w-3 h-3" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

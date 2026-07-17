@@ -71,16 +71,154 @@ export function Reports() {
   const handleDownload = async (report: Report & { id: string }) => {
     if (report.status !== "ready") { toast.info("Report is still generating…"); return; }
     await incrementReportDownload(report.id);
-    // Build a simple text report for download
-    const content = buildReportContent(report, findingsList, assets, scans);
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${report.template.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Report downloaded");
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+
+      // ── Header band ───────────────────────────────────────────────────────
+      doc.setFillColor(10, 10, 15);
+      doc.rect(0, 0, pageW, 38, "F");
+      doc.setFillColor(6, 182, 212);
+      doc.rect(0, 0, 4, 38, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.setTextColor(255, 255, 255);
+      doc.text("VIGIL", 12, 17);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 180);
+      doc.text("Security Platform · vigil.com.ng", 12, 24);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(220, 230, 255);
+      doc.text(report.title, 12, 33);
+
+      // Date + period (right side)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 120, 150);
+      doc.text(new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }), pageW - 12, 17, { align: "right" });
+      doc.text(`Period: ${report.period}`, pageW - 12, 24, { align: "right" });
+
+      // ── Summary cards ─────────────────────────────────────────────────────
+      const cardY = 46;
+      const cards = [
+        { label: "Total Findings",    value: String(report.totalFindings ?? findingsList.length), color: [234, 179, 8] as [number,number,number] },
+        { label: "Critical Findings", value: String(report.criticalFindings ?? 0),                color: [239, 68, 68] as [number,number,number] },
+        { label: "Assets Scanned",   value: String(report.assetsScanned ?? assets.length),       color: [6, 182, 212] as [number,number,number] },
+        { label: "Scans Included",   value: String(report.scansIncluded ?? completedCount),      color: [34, 197, 94] as [number,number,number] },
+      ];
+      const cardW = (pageW - 24 - 9) / 4;
+      cards.forEach((c, i) => {
+        const x = 12 + i * (cardW + 3);
+        doc.setFillColor(15, 15, 25);
+        doc.roundedRect(x, cardY, cardW, 20, 2, 2, "F");
+        doc.setFillColor(...c.color);
+        doc.roundedRect(x, cardY, 3, 20, 1, 1, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(255, 255, 255);
+        doc.text(c.value, x + cardW / 2 + 1, cardY + 10, { align: "center" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(130, 140, 170);
+        doc.text(c.label, x + cardW / 2 + 1, cardY + 16, { align: "center" });
+      });
+
+      // ── Findings table ────────────────────────────────────────────────────
+      const severityColor = (s: string): [number,number,number] => {
+        if (s === "critical") return [220, 50, 50];
+        if (s === "high")     return [234, 100, 40];
+        if (s === "medium")   return [200, 150, 30];
+        return [100, 150, 100];
+      };
+
+      const tableRows = findingsList.slice(0, 50).map(f => [
+        f.title?.slice(0, 60) ?? "—",
+        f.severity?.toUpperCase() ?? "—",
+        f.category ?? "—",
+        f.assetName ?? "—",
+        f.cvss?.toFixed(1) ?? "—",
+      ]);
+
+      if (tableRows.length > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(200, 210, 240);
+        doc.text("Findings Detail", 12, cardY + 30);
+
+        autoTable(doc, {
+          startY: cardY + 35,
+          head: [["Finding", "Severity", "Category", "Asset", "CVSS"]],
+          body: tableRows,
+          theme: "plain",
+          styles: {
+            font: "helvetica",
+            fontSize: 8,
+            textColor: [200, 205, 220],
+            fillColor: [10, 10, 20],
+            lineColor: [30, 30, 50],
+            lineWidth: 0.1,
+            cellPadding: 2.5,
+            overflow: "ellipsize",
+          },
+          headStyles: {
+            fillColor: [15, 15, 30],
+            textColor: [100, 160, 220],
+            fontStyle: "bold",
+            fontSize: 8,
+          },
+          alternateRowStyles: { fillColor: [13, 13, 22] },
+          columnStyles: {
+            0: { cellWidth: 72 },
+            1: { cellWidth: 22, halign: "center" as const },
+            2: { cellWidth: 32 },
+            3: { cellWidth: 40 },
+            4: { cellWidth: 14, halign: "center" as const },
+          },
+          didParseCell(data) {
+            if (data.column.index === 1 && data.section === "body") {
+              const sev = String(data.cell.raw).toLowerCase();
+              const [r, g, b] = severityColor(sev);
+              data.cell.styles.textColor = [r, g, b];
+              data.cell.styles.fontStyle = "bold";
+            }
+          },
+          margin: { left: 12, right: 12 },
+        });
+      } else {
+        doc.setFontSize(9);
+        doc.setTextColor(120, 130, 160);
+        doc.text("No findings recorded for this period.", 12, cardY + 38);
+      }
+
+      // ── Footer ────────────────────────────────────────────────────────────
+      const finalY = (doc as any).lastAutoTable?.finalY ?? cardY + 40;
+      if (finalY + 18 < pageH) {
+        doc.setDrawColor(30, 30, 50);
+        doc.setLineWidth(0.3);
+        doc.line(12, pageH - 14, pageW - 12, pageH - 14);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(80, 90, 120);
+        doc.text("Vigil Security Platform  ·  support@vigil.com.ng  ·  vigil.com.ng", 12, pageH - 8);
+        doc.text(`Generated ${new Date().toISOString().replace("T", " ").slice(0, 19)} UTC`, pageW - 12, pageH - 8, { align: "right" });
+      }
+
+      const filename = `${report.template.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+      doc.save(filename);
+      toast.success("PDF downloaded");
+    } catch (err: any) {
+      toast.error("PDF generation failed: " + (err?.message || "Unknown error"));
+    }
   };
 
   const handleSchedule = async () => {

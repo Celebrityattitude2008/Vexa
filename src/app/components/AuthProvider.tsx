@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Use defaults if Firestore is inaccessible
         }
 
-        subscribeToAlerts(uid);
+        subscribeToAlerts(firebaseUser.uid);
       } else {
         setUser(null);
         setEmailVerified(true);

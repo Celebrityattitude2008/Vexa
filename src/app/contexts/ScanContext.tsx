@@ -76,6 +76,14 @@ function uuid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+function computeNextRunAt(interval: string): Date | null {
+  const d = new Date();
+  if (interval === "daily")   { d.setDate(d.getDate() + 1); return d; }
+  if (interval === "weekly")  { d.setDate(d.getDate() + 7); return d; }
+  if (interval === "monthly") { d.setMonth(d.getMonth() + 1); return d; }
+  return null;
+}
+
 // ── Scan phases ──────────────────────────────────────────────────────────────
 const PHASES = [
   { name: "DNS Resolution",           start: 0,  end: 12  },
@@ -324,10 +332,14 @@ export function ScanProvider({ children }: { children: ReactNode }) {
   // ── Public actions ────────────────────────────────────────────────────────
   const createScan = useCallback(async (
     userId: string,
-    data: { name: string; target: string; scanType: string }
+    data: { name: string; target: string; scanType: string; scheduleInterval?: string }
   ): Promise<string> => {
     const id = uuid();
     const now = newLocalTimestamp();
+
+    // Compute first nextRunAt for scheduled scans
+    const nextRunAt = computeNextRunAt(data.scheduleInterval || "none");
+
     const newScan: ScanJob = {
       id,
       name: data.name,
@@ -339,6 +351,8 @@ export function ScanProvider({ children }: { children: ReactNode }) {
       duration: null,
       phase: "Queued",
       assetsDiscovered: 0,
+      scheduleInterval: (data.scheduleInterval || "none") as any,
+      nextRunAt: nextRunAt ? makeFakeTimestamp(nextRunAt.toISOString()) : null,
       _assets: [],
       _findings: [],
       createdBy: userId,
@@ -349,7 +363,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     setScans(prev => [newScan, ...prev]);
 
     tryFirestore(async () => {
-      const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
+      const { addDoc, collection, serverTimestamp, Timestamp: FsTimestamp } = await import("firebase/firestore");
       const { db } = await import("../../firebase");
       await addDoc(collection(db, "scans"), {
         id,
@@ -362,6 +376,8 @@ export function ScanProvider({ children }: { children: ReactNode }) {
         duration: null,
         phase: "Queued",
         assetsDiscovered: 0,
+        scheduleInterval: data.scheduleInterval || "none",
+        nextRunAt: nextRunAt ? FsTimestamp.fromDate(nextRunAt) : null,
         _assets: [],
         _findings: [],
         createdBy: userId,
@@ -580,6 +596,44 @@ export function ScanProvider({ children }: { children: ReactNode }) {
           createdBy: uid,
         });
       });
+
+      // ── Write risk history snapshot ──────────────────────────────────────────
+      if (uid) {
+        tryFirestore(async () => {
+          const { writeRiskSnapshot } = await import("../../firebase");
+          const criticalCount = allFindings.filter((f: any) => f.severity === "critical").length;
+          const highCount     = allFindings.filter((f: any) => f.severity === "high").length;
+          const medCount      = allFindings.filter((f: any) => f.severity === "medium").length;
+          const score = Math.min(100, criticalCount * 25 + highCount * 10 + medCount * 4);
+          const today = new Date().toISOString().slice(0, 10);
+          await writeRiskSnapshot(uid, {
+            date: today,
+            score,
+            scanId: scan.id,
+            target: scan.target,
+            totalFindings: allFindings.length,
+            criticalFindings: criticalCount,
+          });
+        });
+      }
+
+      // ── Re-schedule if this is a recurring scan ──────────────────────────────
+      const scheduleInterval = (scan as any).scheduleInterval as string | undefined;
+      if (scheduleInterval && scheduleInterval !== "none") {
+        const nextRunAt = computeNextRunAt(scheduleInterval);
+        if (nextRunAt) {
+          tryFirestore(async () => {
+            const { doc, updateDoc, Timestamp: FsTimestamp } = await import("firebase/firestore");
+            const { db } = await import("../../firebase");
+            await updateDoc(doc(db, "scans", scan.id), {
+              nextRunAt: FsTimestamp.fromDate(nextRunAt),
+              status: "queued",
+              progress: 0,
+              phase: "Queued",
+            });
+          });
+        }
+      }
     } catch (err) {
       console.warn("Scan completion error:", err);
       completingRef.current.delete(scan.id);

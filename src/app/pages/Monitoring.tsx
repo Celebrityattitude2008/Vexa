@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   Activity,
   PlayCircle,
@@ -56,7 +57,7 @@ export function Monitoring() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [showNewScanModal, setShowNewScanModal] = useState(false);
-  const [scanForm, setScanForm] = useState({ name: "", target: "", scanType: "full" });
+  const [scanForm, setScanForm] = useState({ name: "", target: "", scanType: "full", scheduleInterval: "none" });
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; target?: string }>({});
 
@@ -100,7 +101,7 @@ export function Monitoring() {
     try {
       await createScan(user.uid, scanForm);
       setShowNewScanModal(false);
-      setScanForm({ name: "", target: "", scanType: "full" });
+      setScanForm({ name: "", target: "", scanType: "full", scheduleInterval: "none" });
       setFieldErrors({});
       toast.success("Scan queued", { description: `"${scanForm.name}" has been added to the queue.` });
     } catch (err: any) {
@@ -262,6 +263,12 @@ export function Monitoring() {
                     <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor(scan.status)}`}>
                       {scan.status}
                     </span>
+                    {(scan as any).scheduleInterval && (scan as any).scheduleInterval !== "none" && (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3" />
+                        {(scan as any).scheduleInterval}
+                      </span>
+                    )}
                     <button
                       onClick={() => handlePause(scan)}
                       className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 transition-all"
@@ -425,6 +432,27 @@ export function Monitoring() {
                   <option value="vulnerability">Vulnerability Scan</option>
                   <option value="api">API Discovery</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-gray-300">
+                  Recurring Schedule
+                </label>
+                <select
+                  value={scanForm.scheduleInterval}
+                  onChange={e => setScanForm(f => ({ ...f, scheduleInterval: e.target.value }))}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-muted)] text-gray-100"
+                >
+                  <option value="none">One-time (no repeat)</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+                {scanForm.scheduleInterval !== "none" && (
+                  <p className="mt-1.5 text-xs text-cyan-400/80">
+                    This scan will automatically re-run {scanForm.scheduleInterval} after completion.
+                  </p>
+                )}
               </div>
             </div>
 

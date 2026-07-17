@@ -1,39 +1,68 @@
 import { Link } from "react-router";
+import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
-  TrendingUp,
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Bell,
-  Database,
-  Sparkles,
+  TrendingUp, Activity, AlertTriangle, CheckCircle2, Bell, Database, Sparkles,
 } from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import { onSnapshot } from "firebase/firestore";
 import { useScanContext } from "../contexts/ScanContext";
+import { useAuth } from "../components/AuthProvider";
+import { getRiskHistoryQuery, type RiskSnapshot } from "../../firebase";
 
 function statusColor(status: string) {
   switch (status) {
-    case "running":
-      return "text-cyan-400 bg-cyan-500/20";
-    case "completed":
-      return "text-green-400 bg-green-500/20";
-    case "failed":
-      return "text-red-400 bg-red-500/20";
-    case "paused":
-      return "text-yellow-400 bg-yellow-500/20";
-    default:
-      return "text-gray-400 bg-white/10";
+    case "running":   return "text-cyan-400 bg-cyan-500/20";
+    case "completed": return "text-green-400 bg-green-500/20";
+    case "failed":    return "text-red-400 bg-red-500/20";
+    case "paused":    return "text-yellow-400 bg-yellow-500/20";
+    default:          return "text-gray-400 bg-white/10";
   }
 }
 
 export function Overview() {
+  const { user } = useAuth();
   const { scans, findings, findingsList, completedCount, activeCount, queuedCount, hasScans, isRunning, assets } = useScanContext();
+  const [riskHistory, setRiskHistory] = useState<RiskSnapshot[]>([]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = onSnapshot(getRiskHistoryQuery(user.uid), (snap) => {
+      setRiskHistory(snap.docs.map(d => d.data() as RiskSnapshot));
+    }, () => {});
+    return unsub;
+  }, [user?.uid]);
+
+  // Build 30-day risk chart data
+  const riskChartData = (() => {
+    const days: { label: string; date: string; score: number | null }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const snap = riskHistory.find(r => r.date === dateStr);
+      days.push({ label, date: dateStr, score: snap ? snap.score : null });
+    }
+    // Forward-fill nulls so the line is continuous
+    let lastScore = 0;
+    return days.map(d => {
+      if (d.score !== null) lastScore = d.score;
+      return { label: d.label, score: lastScore };
+    });
+  })();
+
+  const latestScore = riskChartData[riskChartData.length - 1]?.score ?? 0;
+  const prevScore   = riskChartData[riskChartData.length - 8]?.score ?? 0;
+  const scoreDelta  = latestScore - prevScore;
 
   const metricCards = [
-    { label: "Total Findings", icon: Activity, highlight: false, value: hasScans ? findings.toString() : "--" },
-    { label: "Completed Scans", icon: CheckCircle2, highlight: true, value: hasScans ? completedCount.toString() : "--" },
-    { label: "Active Scans", icon: TrendingUp, highlight: false, value: hasScans ? activeCount.toString() : "--" },
-    { label: "Queued Scans", icon: AlertTriangle, highlight: false, value: hasScans ? queuedCount.toString() : "--" },
+    { label: "Total Findings",  icon: Activity,     highlight: false, value: hasScans ? findings.toString() : "--" },
+    { label: "Completed Scans", icon: CheckCircle2,  highlight: true,  value: hasScans ? completedCount.toString() : "--" },
+    { label: "Active Scans",    icon: TrendingUp,    highlight: false, value: hasScans ? activeCount.toString() : "--" },
+    { label: "Queued Scans",    icon: AlertTriangle, highlight: false, value: hasScans ? queuedCount.toString() : "--" },
   ];
 
   const recentActivity = [...scans]
@@ -50,6 +79,7 @@ export function Overview() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <h1 className="sr-only">Vigil Dashboard — Overview</h1>
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {metricCards.map((metric, idx) => (
@@ -78,137 +108,145 @@ export function Overview() {
         ))}
       </div>
 
-      {/* Charts Row */}
+      {/* 30-Day Risk Score Trend */}
+      <div className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <h3 className="text-lg font-semibold">Risk Score Trend</h3>
+            <p className="text-xs text-gray-400 mt-0.5">30-day risk score based on completed scans</p>
+          </div>
+          {riskHistory.length > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-2xl font-bold text-gray-100">{latestScore}</div>
+                <div className={`text-xs font-medium ${scoreDelta > 0 ? "text-red-400" : scoreDelta < 0 ? "text-green-400" : "text-gray-400"}`}>
+                  {scoreDelta > 0 ? `▲ +${scoreDelta}` : scoreDelta < 0 ? `▼ ${scoreDelta}` : "— unchanged"} vs 7d ago
+                </div>
+              </div>
+              <div className={`w-3 h-3 rounded-full ${latestScore >= 70 ? "bg-red-400" : latestScore >= 40 ? "bg-yellow-400" : "bg-green-400"}`} />
+            </div>
+          )}
+        </div>
+
+        {riskHistory.length === 0 ? (
+          <div className="h-44 flex flex-col items-center justify-center gap-2">
+            <TrendingUp className="w-9 h-9 text-gray-600" />
+            <p className="text-gray-500 text-sm">Complete a scan to start tracking risk over time</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={riskChartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+              <defs>
+                <linearGradient id="riskGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                interval={6}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                contentStyle={{ background: "#0d0d18", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
+                itemStyle={{ color: "#22d3ee" }}
+                labelStyle={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}
+                formatter={(v: number) => [`${v}`, "Risk Score"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="score"
+                stroke="#06b6d4"
+                strokeWidth={2}
+                fill="url(#riskGrad)"
+                dot={false}
+                activeDot={{ r: 4, fill: "#06b6d4", stroke: "#0a0a0f", strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Bottom grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Risk Trends */}
+        {/* Risk Trends bar chart */}
         <div className="lg:col-span-2 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-1">Risk Trends</h3>
-            <p className="text-sm text-gray-400">Last 7 days</p>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Findings (Last 7 Days)</h3>
+            <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+              activityStatus === "Active" ? "bg-green-500/20 text-green-400" : "bg-white/5 text-gray-400"
+            }`}>{activityStatus}</span>
           </div>
-          <div className="h-[200px] md:h-[250px] flex flex-col items-center justify-center rounded-lg border border-white/5 bg-white/2">
-                {findingsList && findingsList.length > 0 ? (
-                  <div className="w-full">
-                    <SimpleBarChart data={buildLast7Days(findingsList)} />
-                    <div className="mt-3 text-xs text-gray-400 text-center">Findings over last 7 days</div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <Activity className="w-10 h-10 text-gray-600 mb-3" />
-                    <p className="text-gray-500 text-sm text-center px-4">
-                      {isRunning
-                        ? "A scan is currently running. See live results in Monitoring."
-                        : "Run a scan to see risk trends."
-                      }
-                    </p>
-                    <Link
-                      to="/monitoring"
-                      className="mt-4 px-4 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-sm font-medium transition-all border border-cyan-500/30"
-                    >
-                      {isRunning ? "View Scan" : "Start Scan"}
-                    </Link>
-                  </div>
-                )}
-          </div>
+          <SimpleBarChart data={buildLast7Days(findingsList)} />
         </div>
 
         {/* Live Activity */}
         <div className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Live Activity</h3>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-green-400" : "bg-gray-600"}`}></div>
-              <span className="text-xs text-gray-500">{activityStatus}</span>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-cyan-400" />
+            Live Activity
+          </h3>
+          {recentActivity.length === 0 ? (
+            <div className="h-[200px] flex flex-col items-center justify-center gap-3">
+              <Activity className="w-10 h-10 text-gray-600" />
+              <p className="text-gray-500 text-sm text-center">No activity yet</p>
             </div>
-          </div>
-          {recentActivity.length > 0 ? (
+          ) : (
             <div className="space-y-3">
               {recentActivity.map((scan) => (
-                <div key={scan.id} className="rounded-xl bg-black/40 border border-white/10 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{scan.name}</div>
-                      <div className="text-xs text-gray-500 truncate">{scan.target}</div>
+                <div key={scan.id} className="flex items-start gap-3">
+                  <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                    scan.status === "running" ? "bg-cyan-400 animate-pulse" :
+                    scan.status === "completed" ? "bg-green-400" : "bg-gray-500"
+                  }`} />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{scan.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{scan.target}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${statusColor(scan.status)}`}>{scan.status}</span>
+                      <span className="text-xs text-gray-600">
+                        {scan.createdAt?.toDate ? formatDistanceToNow(scan.createdAt.toDate(), { addSuffix: true }) : ""}
+                      </span>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${statusColor(scan.status)}`}>
-                      {scan.status}
-                    </span>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-400">
-                    {scan.createdAt?.toDate ? formatDistanceToNow(scan.createdAt.toDate(), { addSuffix: true }) : "Just now"}
                   </div>
                 </div>
               ))}
-            </div>
-          ) : (
-            <div className="h-[200px] md:h-[250px] flex flex-col items-center justify-center">
-              <Bell className="w-10 h-10 text-gray-600 mb-3" />
-              <p className="text-gray-500 text-sm text-center">No recent activity yet. Run a scan to populate the activity feed.</p>
             </div>
           )}
         </div>
       </div>
 
       {/* AI Insight + Asset Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* AI Insight */}
-        <div className="lg:col-span-2 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-xl border border-purple-500/30 p-4 md:p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-6 h-6 text-purple-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <h3 className="text-lg font-semibold">Vigil AI Insight</h3>
-                <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${hasScans ? "bg-green-500/20 text-green-400" : "bg-purple-500/20 text-purple-400"}`}>
-                  {isRunning ? "Scanning…" : hasScans ? "Analysis Ready" : "Waiting for data"}
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Vigil AI Insight */}
+        <div className="rounded-xl bg-gradient-to-br from-purple-500/5 to-blue-500/5 border border-purple-500/20 p-4 md:p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            Vigil AI Insight
+          </h3>
+          {!hasScans ? (
+            <>
+              <p className="text-gray-400 mb-4 text-sm md:text-base">
+                {isRunning ? "Scan in progress — AI insights will be ready once findings are collected." : "Run your first security scan to unlock AI-powered insights, risk predictions, and attack path analysis."}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/monitoring" className="px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all border border-purple-500/30">
+                  {isRunning ? "View Scan Progress" : "Start First Scan"}
+                </Link>
               </div>
-              {hasScans && findingsList.length > 0 ? (
-                <>
-                  <p className="text-gray-300 mb-3 text-sm md:text-base">
-                    {(() => {
-                      const critical = findingsList.filter(f => f.severity === "critical").length;
-                      const high = findingsList.filter(f => f.severity === "high").length;
-                      const cveCount = findingsList.filter(f => f.cve).length;
-                      const criticalAssets = assets.filter(a => a.riskScore >= 75).length;
-                      if (critical > 0)
-                        return `⚠️ ${critical} critical vulnerability${critical > 1 ? "ies" : "y"} detected across ${assetCount} assets — immediate remediation required. ${high > 0 ? `${high} high-severity findings also need attention.` : ""}`;
-                      if (high > 0)
-                        return `${high} high-severity finding${high > 1 ? "s" : ""} identified across your infrastructure. ${cveCount > 0 ? `${cveCount} CVEs tracked — review and patch affected services.` : ""}`;
-                      return `${findingsList.length} security finding${findingsList.length > 1 ? "s" : ""} across ${assetCount} assets. ${cveCount > 0 ? `${cveCount} CVEs identified.` : "No critical issues detected."} Risk posture is ${criticalAssets > 0 ? "elevated" : "moderate"}.`;
-                    })()}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {findingsList.filter(f => f.severity === "critical").length > 0 && (
-                      <span className="px-2 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs border border-red-500/30">{findingsList.filter(f => f.severity === "critical").length} Critical</span>
-                    )}
-                    {findingsList.filter(f => f.severity === "high").length > 0 && (
-                      <span className="px-2 py-1 rounded-lg bg-orange-500/20 text-orange-400 text-xs border border-orange-500/30">{findingsList.filter(f => f.severity === "high").length} High</span>
-                    )}
-                    {findingsList.filter(f => f.cve).length > 0 && (
-                      <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-400 text-xs border border-purple-500/30">{new Set(findingsList.filter(f => f.cve).map(f => f.cve)).size} CVEs</span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <Link to="/ai-risk" className="px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all border border-purple-500/30">View AI Risk Center</Link>
-                    <Link to="/attack-graph" className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition-all">Attack Graph</Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-gray-400 mb-4 text-sm md:text-base">
-                    {isRunning ? "Scan in progress — AI insights will be ready once findings are collected." : "Run your first security scan to unlock AI-powered insights, risk predictions, and attack path analysis."}
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Link to="/monitoring" className="px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all border border-purple-500/30">
-                      {isRunning ? "View Scan Progress" : "Start First Scan"}
-                    </Link>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+            </>
+          ) : (
+            <AiInsightText findingsList={findingsList} assets={assets} />
+          )}
         </div>
 
         {/* Asset Distribution */}
@@ -243,6 +281,34 @@ export function Overview() {
   );
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function AiInsightText({ findingsList, assets }: { findingsList: any[]; assets: any[] }) {
+  const critCount  = findingsList.filter(f => f.severity === "critical").length;
+  const highCount  = findingsList.filter(f => f.severity === "high").length;
+  const cveCount   = findingsList.filter(f => f.cve).length;
+  const riskAssets = assets.filter(a => a.riskScore >= 75).length;
+
+  if (critCount > 0 || highCount > 0) {
+    return (
+      <p className="text-gray-300 leading-relaxed text-sm">
+        Vigil detected <span className="text-red-400 font-semibold">{critCount} critical</span> and{" "}
+        <span className="text-orange-400 font-semibold">{highCount} high-severity</span> findings.{" "}
+        {cveCount > 0 && `${cveCount} known CVEs require immediate patching. `}
+        {riskAssets > 0 && `${riskAssets} asset${riskAssets > 1 ? "s" : ""} scored 75+ risk. `}
+        Prioritise remediation of critical paths before lateral movement is possible.
+      </p>
+    );
+  }
+  return (
+    <p className="text-gray-300 leading-relaxed text-sm">
+      No critical or high-severity issues detected in your latest scan.{" "}
+      {assets.length > 0 && `${assets.length} assets are being monitored. `}
+      Maintain your scan cadence to catch newly disclosed vulnerabilities early.
+    </p>
+  );
+}
+
 function buildLast7Days(findingsList: any[]) {
   const days: { label: string; count: number }[] = [];
   for (let i = 6; i >= 0; i--) {
@@ -255,11 +321,10 @@ function buildLast7Days(findingsList: any[]) {
   findingsList.forEach((f) => {
     let ts = (f.createdAt && f.createdAt.toDate) ? f.createdAt.toDate() : f.createdAt ? new Date(f.createdAt) : null;
     if (!ts) return;
-    const idx = days.findIndex((day) => {
-      const dayDate = new Date();
-      const parts = day.label.split(" ");
-      // best-effort: compare day of month
-      return ts.getDate() === new Date(dayDate.setDate(new Date().getDate() - (6 - days.indexOf(day)))).getDate();
+    const idx = days.findIndex((_day, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return ts.getDate() === d.getDate() && ts.getMonth() === d.getMonth();
     });
     if (idx >= 0) days[idx].count += 1;
   });
@@ -268,13 +333,10 @@ function buildLast7Days(findingsList: any[]) {
 
 function SimpleBarChart({ data }: { data: { label: string; count: number }[] }) {
   const max = Math.max(...data.map((d) => d.count), 1);
-  const w = 100; // percent width container
-  const barGap = 6;
-  const barWidth = (w - (data.length - 1) * (barGap / data.length)) / data.length;
+  const w = 100;
   return (
     <div className="w-full h-36 px-3 relative">
       <svg viewBox={`0 0 ${w} 100`} preserveAspectRatio="none" className="w-full h-full">
-        {/* horizontal grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
           <line key={i} x1={0} x2={w} y1={10 + (1 - t) * 80} y2={10 + (1 - t) * 80} stroke="rgba(255,255,255,0.04)" strokeWidth={0.5} />
         ))}
